@@ -6,11 +6,11 @@ struct file_info{
 	char extension[MAXNAME];
 	char last_modified[MAXNAME];
 	int size;
-}
+};
 
 struct client{
 	int devices[2];
 	char userid[MAXNAME];
-	struct file_info[MAXFILES];
+	struct file_info fi[MAXFILES];
 	int logged_in;
-}
+};
