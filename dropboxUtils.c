@@ -1,3 +1,7 @@
+#ifndef DROPBOXUTILS_HEADER
+#define DROPBOXUTILS_HEADER
+
+
 #define MAXNAME 20
 #define MAXFILES 10
 
@@ -14,3 +18,5 @@ struct client{
 	struct file_info fi[MAXFILES];
 	int logged_in;
 };
+
+#endif

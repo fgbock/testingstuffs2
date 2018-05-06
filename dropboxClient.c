@@ -1,3 +1,6 @@
+#ifndef DROPBOXCLIENT_C
+#define DROPBOXCLIENT_C
+
 #include<stdio.h>
 #include<string.h>
 #include"dropboxUtils.h"
@@ -36,13 +39,13 @@ int main(int argc,char *argv[]){
 
 	int i;
 	for(i = 0;i < argc;i++){
-		
-		
+
+
 		if(strcmp(argv[i],"-upload") == 0){
 
 		}
 		else if(strcmp(argv[i],"-download") == 0){
-		
+
 		}
 		else if(strcmp(argv[i],"-list_server") == 0){
 
@@ -61,3 +64,6 @@ int main(int argc,char *argv[]){
 
 return 0;
 }
+
+
+#endif
