@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 		if (n < 0) 
 			printf("ERROR on recvfrom");
 		printf("Received a datagram: %s\n", buf);
+		printf("opa\n");
 		
 		/* send to socket */
 		n = sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
