@@ -20,7 +20,7 @@ void send_file(char *file){
 
 int main(int argc,char *argv[]){
 
-	printf("%d\n",create_sync("123"));
+	create_home_dir(argv[1]);
 
 	return 0;
 }

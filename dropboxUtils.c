@@ -1,9 +1,7 @@
-#ifndef DROPBOXUTILS_HEADER
-#define DROPBOXUTILS_HEADER
+//#ifndef DROPBOXUTILS_HEADER
+//#define DROPBOXUTILS_HEADER
+#include"dropboxUtils.h"
 
-
-#define MAXNAME 20
-#define MAXFILES 10
 
 struct file_info{
 	char name[MAXNAME];
@@ -19,4 +17,14 @@ struct client{
 	int logged_in;
 };
 
-#endif
+int create_home_dir(char *userID){
+	char *dir = malloc((strlen(userID)+10)*sizeof(char));	
+	strcpy(dir, "mkdir ~/");
+	strcat(dir, userID);
+	int ret = system(dir);
+	free(dir);
+	return ret;
+}
+
+
+//#endif
