@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 #include "dropboxUtils.h"
 
 #define MAIN_PORT 6000
@@ -21,6 +22,7 @@ struct file_info {
 struct client {
   int devices[2];
   struct sockaddr sender;
+  int session_port;
   char userid [MAXNAME];
   struct file_info info [MAXFILES];
   int logged_in;
@@ -30,15 +32,16 @@ void sync_server(){
 
 }
 
-void receive_file(char *file){
-
-}
-
 void send_file(char *file){
 
 }
 
-int session_manager(){
+void *session_manager(void *args){
+	struct sockaddr_in session;
+	struct client *session_client;
+	session_client = args;
+	printf("\n\nNew session created...\n");
+	printf("User ID is: %s\n\n", session_client->userid);
 	return 0;
 }
 
@@ -77,11 +80,16 @@ int main(int argc,char *argv[]){
 	while(online){
 		received = recvfrom(s_socket,packet_buffer,sizeof(packet_buffer),0,(struct sockaddr *) &client,(socklen_t *)&client_len);
 		if (!received){
-			printf("ERROR: Package reception error.");
+			printf("ERROR: Package reception error.\n\n");
 			exit(2);
 		}
-		struct client client_structure;
 		sendto(s_socket,"ACK",sizeof("ACK"),0,(struct sockaddr *)&client, client_len);
+		// ^ reply with session_manager's port instead ^
+		pthread_t tid;
+		struct client new_client;
+		strcpy(new_client.userid,"teste");
+		new_client.sender = client;
+		pthread_create(&tid, NULL, session_manager, &new_client);
 	}
 	return 0;
 }
