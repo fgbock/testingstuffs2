@@ -11,20 +11,20 @@
 
 #define MAIN_PORT 6000
 
-struct client {
-  int devices[2];
-  struct sockaddr sender;
-  char userid[MAXNAME];
-  struct file_info[MAXFILES];
-  int logged_in;
-}
-
 struct file_info {
   char name[MAXNAME];
   char extension[MAXNAME];
   char last_modified[MAXNAME];
   int size;
-}
+};
+
+struct client {
+  int devices[2];
+  struct sockaddr sender;
+  char userid [MAXNAME];
+  struct file_info info [MAXFILES];
+  int logged_in;
+};
 
 void sync_server(){
 
@@ -75,13 +75,13 @@ int main(int argc,char *argv[]){
 		2) uses their info to create a new session thread
 */
 	while(online){
-		received = recvfrom(s_socket,packet_buffer,sizeof(packlet_buffer),0,(struct sockaddr *) &client,(socklen_t *)&client_len);
+		received = recvfrom(s_socket,packet_buffer,sizeof(packet_buffer),0,(struct sockaddr *) &client,(socklen_t *)&client_len);
 		if (!received){
 			printf("ERROR: Package reception error.");
 			exit(2);
 		}
 		struct client client_structure;
-		client_structure.sender = client;
+		sendto(s_socket,"ACK",sizeof("ACK"),0,(struct sockaddr *)&client, client_len);
 	}
 	return 0;
 }
