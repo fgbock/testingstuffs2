@@ -10,4 +10,8 @@
 
 int create_home_dir(char *userID);
 
+int receive_int_from(int socket);
+
+int send_int_to(int socket, int op);
+
 //#endif
