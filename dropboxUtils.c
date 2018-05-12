@@ -38,9 +38,10 @@ int receive_int_from(int socket){
 	struct sockaddr_in cli_addr;
 	clilen = sizeof(struct sockaddr_in);
 
-	char *buf = malloc(sizeof(char)); //recebe um char apenas representando um número de op no intervalo [1...algo]
-	
-	n = recvfrom(socket, buf, sizeof(char), 0, (struct sockaddr *) &cli_addr, &clilen);
+	//char *buf = malloc(sizeof(char)); //recebe um char apenas representando um número de op no intervalo [1...algo]
+	int receivedInt = 0;
+
+	n = recvfrom(socket,(char*) &receivedInt, sizeof(int), 0, (struct sockaddr *) &cli_addr, &clilen);
 	if (n < 0) 
 		return -1;
 	
@@ -49,24 +50,26 @@ int receive_int_from(int socket){
 	if (n  < 0) 
 		return -1;
 
-	int ret = atoi(buf);
-	free(buf);
-	return ret;
+	//int ret = atoi(buf);
+	//free(buf);
+	return ntohl(receivedInt);
 }
 
 int send_int_to(int socket, int op){
 	//envia uma op como um inteiro, -1 se falha e  0  se sucesso
 	int n;	
 	struct sockaddr_in serv_addr, from;
-	char *buf = malloc(sizeof(char)); //op tem apenas um char/dígito
-	sprintf(buf, "%d", op); //conversão de op para a string buf  
+	//char *buf = malloc(sizeof(char)); //op tem apenas um char/dígito
+	//sprintf(buf, "%d", op); //conversão de op para a string buf  
 	
-	n = sendto(socket, buf, sizeof(char), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	int sendInt = htonl(op);
+	
+	n = sendto(socket, (char*) &sendInt, sizeof(int), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 	if (n < 0) 
 		return -1;
 
-	free(buf);
-	buf = malloc(sizeof(char)*3); //para receber o ack
+	//free(buf);
+	char *buf = malloc(sizeof(char)*3); //para receber o ack
 	
 	unsigned int length = sizeof(struct sockaddr_in);
 	n = recvfrom(socket, buf, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
@@ -77,6 +80,14 @@ int send_int_to(int socket, int op){
 
 	return 0;
 }
+
+
+char* receive_string_from(int socket){
+	
+}
+
+int send_string_to(int socket, char* str);
+
 
 
 //#endif

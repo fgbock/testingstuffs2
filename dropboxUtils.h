@@ -14,4 +14,8 @@ int receive_int_from(int socket);
 
 int send_int_to(int socket, int op);
 
+char* receive_string_from(int socket);
+
+int send_string_to(int socket, char* str);
+
 //#endif

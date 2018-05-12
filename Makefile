@@ -13,4 +13,4 @@ dropboxServer.o: dropboxServer.c
 	gcc -c dropboxServer.c
 
 clean:
-	rm dropbocClient.o dropboxServer.o dropboxUtils.o dropboxClient dropboxServer
+	rm dropboxClient.o dropboxServer.o dropboxUtils.o dropboxClient dropboxServer
