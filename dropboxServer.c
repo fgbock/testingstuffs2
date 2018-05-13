@@ -150,8 +150,26 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len){
 }
 
 // Specification subroutines
-void sync_server(){
+void sync_server(int socket,  char*userID){
+	int n_files = receive_int_from(socket); //número de arquivos a serem atualizados
 
+	for(int i=0; i<n_files; i++){
+		char *file = receive_string_from(socket); //cliente manda nome do arquivo a ser alterado/criado
+
+		char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+		
+		strcpy(path, "~/dropboxserver/");
+		strcat(path, userID);
+		strcat(path, "/");
+		strcat(path, file); //arquivo será salvo no server
+
+
+		receive_file_from(socket, path); //cliente manda o arquivo
+
+		free(file);
+		free(path);
+	}
+	return;
 }
 
 void send_file(char *file, int socket, char *userID){
