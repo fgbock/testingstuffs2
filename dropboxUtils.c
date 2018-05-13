@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <asm/errno.h>
+#include <dirent.h>
 
 
 struct file_info{
@@ -24,13 +29,46 @@ struct client{
 };
 
 int create_home_dir(char *userID){
-	char *dir = malloc((strlen(userID)+10)*sizeof(char));	
-	strcpy(dir, "mkdir ~/");
-	strcat(dir, userID);
-	int ret = system(dir);
-	free(dir);
+	//cria diretório com nome do user no HOME do user, chamado pelo cliente
+	char *path = malloc((strlen(userID)+15)*sizeof(char));	
+	//strcpy(dir, "mkdir ~/");
+	strcpy(path, "~/sync_dir_");
+	strcat(path, userID);
+	DIR *dir = opendir(path);
+	int ret=0;
+	if(dir){
+		closedir(dir); //diretório já existe, apenas fechamos ele
+	}else if(ENOENT==errno){ //diretório não existe!!
+		char *syscmd = malloc((strlen(userID)+20)*sizeof(char));
+		strcpy(syscmd, "mkdir");
+		strcat(syscmd, userID);
+		ret = system(syscmd);
+		free(syscmd);
+	}
+	free(path);
 	return ret;
 }
+
+/*int create_server_dir(char *userID){
+	//cria diretório com nome do user no HOME do user, chamado pelo cliente
+	char *path = malloc((strlen(userID)+15)*sizeof(char));	
+	//strcpy(dir, "mkdir ~/");
+	strcpy(path, "~/sync_dir_");
+	strcat(path, userID);
+	DIR *dir = opendir(path);
+	int ret=0;
+	if(dir){
+		closedir(dir); //diretório já existe, apenas fechamos ele
+	}else if(ENOENT==errno){ //diretório não existe!!
+		char *syscmd = malloc((strlen(userID)+20)*sizeof(char));
+		strcpy(syscmd, "mkdir");
+		strcat(syscmd, userID);
+		ret = system(syscmd);
+		free(syscmd);
+	}
+	free(path);
+	return ret;
+}*/
 
 
 int receive_int_from(int socket){
