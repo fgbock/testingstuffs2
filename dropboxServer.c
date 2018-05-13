@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/queue.h>
 #include "dropboxUtils.h"
 
 #define MAIN_PORT 6000
