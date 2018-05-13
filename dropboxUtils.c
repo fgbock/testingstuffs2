@@ -182,6 +182,8 @@ int send_file_to(int socket, char* file_name){
 
 	free(bufACK);
 
+	close(file);
+
 	return 0;
 }
 
