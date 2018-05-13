@@ -7,7 +7,8 @@
 
 #define MAXNAME 20
 #define MAXFILES 10
-#define CHUNK 1024
+#define CHUNK 1240
+#define OPCODE 10
 
 int create_home_dir(char *userID);
 

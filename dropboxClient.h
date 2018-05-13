@@ -3,7 +3,7 @@
 
 
 
-int login_server(char *host,int port);
+int login_server(char *host,int por);
 void sync_client();
 void send_file(char *file);
 void get_file(char *file);
