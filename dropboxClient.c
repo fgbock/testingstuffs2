@@ -23,7 +23,6 @@ char userID[20];
 char host[20];
 int port;
 //======================================================
-//done!
 int login_server(char *host,int port){
 	int sockfd, n;
 	unsigned int length;
@@ -55,30 +54,37 @@ int login_server(char *host,int port){
 	return 1;
 }
 
-//TODO
 void sync_client(){
 	int x = 2+2;
 
 
 }
-//TODO
+
 void send_file(char *file){
-	int x = 2+2;
+	int sockfd;
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
 
+	send_file_to(int sockfd, file);
+
+	close(sockfd);
 }
-//TODO
+
 void get_file(char *file){
-	int x = 2+2;
+	int sockfd;
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
 
+	receive_file_from(sockfd, file);
 
+	close(sockfd);
 }
-//TODO
+
 void delete_file(char *file){
 	int x = 2+2;
 
 }
 
-//done!
 void close_session(){
 	int sockfd, n;
 	unsigned int length;
@@ -110,6 +116,8 @@ void close_session(){
 
 }
 //=======================================================
+
+
 char * getArgument(char command[100]){
 	char* argument;
 	int i=0; int j=0;
