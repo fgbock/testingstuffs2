@@ -23,8 +23,8 @@ struct file_info {
 
 void sync_server();
 
-void receive_file(char *file);
+void receive_file(char *file, int socket, char*userID);
 
-void send_file(char *file);
+void send_file(char *file, int socket, char*userID);
 
 #endif

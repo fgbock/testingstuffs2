@@ -154,12 +154,34 @@ void sync_server(){
 
 }
 
-void send_file(char *file){
+void send_file(char *file, int socket, char *userID){
+	//forma o path do arquivo no servidor com base no userid e nome do arquivo
+	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+	
+	strcpy(path, "~/dropboxserver/");
+	strcat(path, userID);
+	strcat(path, "/");
+	strcat(path, file);
 
+	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
+	
+	send_file_to(socket, path);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+	free(path);
 }
 
-void receive_file(char *file){
+void receive_file(char *file, int socket, char*userID){
+	//forma o path do arquivo no servidor com base no userid e nome do arquivo
+	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+	
+	strcpy(path, "~/dropboxserver/");
+	strcat(path, userID);
+	strcat(path, "/");
+	strcat(path, file);
 
+	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
+	
+	receive_file_from(socket, path);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
+	free(path);
 }
 
 // Server's main thread

@@ -40,7 +40,7 @@ int create_home_dir(char *userID){
 		closedir(dir); //diretório já existe, apenas fechamos ele
 	}else if(ENOENT==errno){ //diretório não existe!!
 		char *syscmd = malloc((strlen(userID)+20)*sizeof(char));
-		strcpy(syscmd, "mkdir");
+		strcpy(syscmd, "mkdir ");
 		strcat(syscmd, path);
 		ret = system(syscmd);
 		free(syscmd);
@@ -59,7 +59,7 @@ int create_server_root(){
 		closedir(dir); //diretório já existe, apenas fechamos ele
 	}else if(ENOENT==errno){ //diretório não existe!!
 		char *syscmd = malloc(20*sizeof(char));
-		strcpy(syscmd, "mkdir");
+		strcpy(syscmd, "mkdir ");
 		strcat(syscmd, path);
 		ret = system(syscmd);
 		free(syscmd);
@@ -79,7 +79,7 @@ int create_server_userdir(char *userID){
 		closedir(dir); //diretório já existe, apenas fechamos ele
 	}else if(ENOENT==errno){ //diretório não existe!!
 		char *syscmd = malloc((strlen(userID)+25)*sizeof(char));
-		strcpy(syscmd, "mkdir");
+		strcpy(syscmd, "mkdir ");
 		strcat(syscmd, path);
 		ret = system(syscmd);
 		free(syscmd);
@@ -197,7 +197,7 @@ int receive_file_from(int socket, char* file_name){
 
 	char buf[CHUNK];
 
-	file = open(buf, O_RDWR | O_CREAT, 0666);
+	file = open(file_name, O_RDWR | O_CREAT, 0666);
 
 	while(n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)){
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0)break;
