@@ -22,7 +22,6 @@ struct file_info {
 
 struct client {
   int device[2];
-  char client_buffer[1250];
   char userid [MAXNAME];
   struct file_info info [MAXFILES];
   int logged_in;
@@ -30,39 +29,69 @@ struct client {
 
 struct session {
 	int client_id;
+	int client_address_len;
 	struct sockaddr client_address;
+	char session_buffer[1250];
 };
 
 // Global Variables
 struct client client_list[10];
+struct session session_list[20];
 int client_active[10];
+int session_active[20];
 int session_counter = 0;
 
-// Subroutines
-void sync_server(){
-
+// Auxiliary Functions
+int min(int right, int left){
+	if(right > left){
+		return left;
+	}
+	else{
+		return right;
+	}
 }
 
-void send_file(char *file){
+int get_session_spot(){
+	int i;
+	for (i = 0; i < 20; i++){
+		if(session_active[i] = 0){
+			return i;
+		}
+	}
+	return -1;
+}
 
+int socket_cmp(struct session *left, struct session *right){
+    socklen_t min_address_len = min(left->client_address_len, right->client_address_len);
+    // If head matches, longer is greater.
+    int default_rv = right->client_address_len - left->client_address_len;
+    int rv = memcmp(left, right, min_address_len);
+    return rv ?: default_rv;
+}
+
+int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
+ 	return 1;
 }
 
 void *session_manager(void *args){
 	struct session *client_session;
 	client_session = (struct session *) args;
 	printf("Current Client ID is: %d\n\n", client_session->client_id);
-	return 0;
 }
 
-int login(struct sockaddr client, char packet_buffer[1250]){
+int login(char packet_buffer[1250], struct sockaddr client, int client_len){
  	char aux_username[20];
 	struct client new_client;
 	struct session new_session;
 	pthread_t tid;
-	int i, not_done = 1;
+	int i, not_done = 1, aux_index;
 	// Verify client list
 	for (i = 0; i < 20; i++){
 		aux_username[i] = packet_buffer[10+i];
+	}
+	aux_index = get_session_spot();
+	if (aux_index == -1){
+		return 0;
 	}
 	create_home_dir(aux_username);
 	for(i = 0; i < 10; i++){
@@ -74,29 +103,44 @@ int login(struct sockaddr client, char packet_buffer[1250]){
 				client_list[i].logged_in--; // Update logged_in
 				new_session.client_id = i; 
 				new_session.client_address = client;
-				printf("New device added to existing session:\n");
+				new_session.client_address_len = client_len;
+				session_list[aux_index] = new_session;
+				printf("New session created, added device to active client:\n");
 				pthread_create(&tid, NULL, session_manager, &new_session);	
 				return 1;
 			}
 		}
 	}
-	i = 0;
-	while(not_done){
+	for(i = 0; i < 10; i++){
 		if(client_active[i] == 0){
 			strcpy(new_client.userid, aux_username); // Set userid
-			new_client.logged_in = 1; // Set logged_in
+			new_client.logged_in--; // Set logged_in
 			client_list[i] = new_client; // Place new client into the client list
 			new_session.client_id = i; // Inform the session of the client's index in the list
 			new_session.client_address = client;
+			new_session.client_address_len = client_len;
+			session_list[aux_index] = new_session;
 			printf("New session created:\n");
 			pthread_create(&tid, NULL, session_manager, &new_session);
-			not_done = 0;
+			return 1;
 		}
-		i++;
 	}
-	return 1;
 }
 
+// Specification subroutines
+void sync_server(){
+
+}
+
+void send_file(char *file){
+
+}
+
+void receive_file(char *file){
+
+}
+
+// Server's main thread
 int main(int argc,char *argv[]){
 	struct sockaddr_in server;
 	struct sockaddr client;
@@ -111,6 +155,9 @@ int main(int argc,char *argv[]){
 		client_list[i] = new_client;
 		strcpy(client_list[i].userid," ");
 		client_active[i] = 0;
+	}
+	for (i = 0; i < 20; i++){
+		session_active[i] = 0;
 	}
 
 	if((s_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -147,7 +194,7 @@ int main(int argc,char *argv[]){
 			op_code[i] = packet_buffer[i];
 		}
 		if (strcmp(op_code,"logins") == 0){
-			if (login(client,packet_buffer)){
+			if (login(packet_buffer, client, client_len)){
 				sendto(s_socket,"ACK",sizeof("ACK"),0,(struct sockaddr *)&client, client_len);
 				printf("Login succesful...\n");				
 			}
@@ -158,9 +205,12 @@ int main(int argc,char *argv[]){
 		}
 		else{
 			printf("Redirecting packet to session manager...");
+			redirect_package(packet_buffer, client, client_len);
 		}
+		// clear packet and auxiliaries
 		memset(packet_buffer,0,1250);
 		memset(op_code,0,7);
+		//TIME TO RESPOND - check send queue and do as appropriate:
 	}
 	return 0;
 }
