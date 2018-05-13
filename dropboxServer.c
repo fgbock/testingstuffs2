@@ -12,6 +12,7 @@
 
 #define MAIN_PORT 6000
 
+// Structures
 struct file_info {
   char name[MAXNAME];
   char extension[MAXNAME];
@@ -20,14 +21,24 @@ struct file_info {
 };
 
 struct client {
-  int devices[2];
-  struct sockaddr sender;
+  int device[2];
   char client_buffer[1250];
   char userid [MAXNAME];
   struct file_info info [MAXFILES];
   int logged_in;
 };
 
+struct session {
+	int client_id;
+	struct sockaddr client_address;
+};
+
+// Global Variables
+struct client client_list[10];
+int client_active[10];
+int session_counter = 0;
+
+// Subroutines
 void sync_server(){
 
 }
@@ -37,24 +48,71 @@ void send_file(char *file){
 }
 
 void *session_manager(void *args){
-	struct sockaddr_in session;
-	struct client *session_client;
-	session_client = args;
-	printf("\n\nNew session created...\n");
-	printf("User ID is: %s\n", session_client->userid);
+	struct session *client_session;
+	client_session = (struct session *) args;
+	printf("Current Client ID is: %d\n\n", client_session->client_id);
 	return 0;
+}
+
+int login(struct sockaddr client, char packet_buffer[1250]){
+ 	char aux_username[20];
+	struct client new_client;
+	struct session new_session;
+	pthread_t tid;
+	int i, not_done = 1;
+	// Verify client list
+	for (i = 0; i < 20; i++){
+		aux_username[i] = packet_buffer[10+i];
+	}
+	for(i = 0; i < 10; i++){
+		if(strcmp(client_list[i].userid,aux_username) == 0){
+			if(client_list[i].logged_in == 0){
+				return 0;
+			}
+			else{			
+				client_list[i].logged_in--; // Update logged_in
+				new_session.client_id = i; 
+				new_session.client_address = client;
+				printf("New device added to existing session:\n");
+				pthread_create(&tid, NULL, session_manager, &new_session);	
+				return 1;
+			}
+		}
+	}
+	i = 0;
+	while(not_done){
+		if(client_active[i] == 0){
+			strcpy(new_client.userid, aux_username); // Set userid
+			new_client.logged_in = 1; // Set logged_in
+			client_list[i] = new_client; // Place new client into the client list
+			new_session.client_id = i; // Inform the session of the client's index in the list
+			new_session.client_address = client;
+			printf("New session created:\n");
+			pthread_create(&tid, NULL, session_manager, &new_session);
+			not_done = 0;
+		}
+		i++;
+	}
+	return 1;
 }
 
 int main(int argc,char *argv[]){
 	struct sockaddr_in server;
 	struct sockaddr client;
 	SOCKET s_socket;
-	int server_len, received, i, online = 1, client_len = sizeof(struct sockaddr_in), session_counter = 0;
+	int server_len, received, i, online = 1, client_len = sizeof(struct sockaddr_in), login_value;
 	char packet_buffer[1250];
-	char op_code[6];
-	char aux_username[20];
+	char op_code[7];
 
-	if ((s_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	// Initializing client list (temporary measure - until we get a user list file)
+	for(i = 0; i < 10; i++){
+		struct client new_client;
+		client_list[i] = new_client;
+		strcpy(client_list[i].userid," ");
+		client_active[i] = 0;
+	}
+
+	if((s_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		printf("ERROR: Socket creation failure.\n");
 		exit(1);
 	}
@@ -84,24 +142,24 @@ int main(int argc,char *argv[]){
 		if (!received){
 			printf("ERROR: Package reception error.\n\n");
 		}
-		for (i = 0; i < 4; i++){
+		for(i = 0; i < 6; i++){
 			op_code[i] = packet_buffer[i];
 		}
-		if (strcmp(op_code,"logins")){
-			for (i = 0; i < 20; i++){
-				aux_username[i] = packet_buffer[10+i];
+		if (strcmp(op_code,"logins") == 0){
+			if (login(client,packet_buffer)){
+				sendto(s_socket,"ACK",sizeof("ACK"),0,(struct sockaddr *)&client, client_len);
+				printf("Login succesful...\n");				
 			}
-			session_counter++;
-			sendto(s_socket,"ACK",sizeof("ACK"),0,(struct sockaddr *)&client, client_len);
-			pthread_t tid;
-			struct client new_client;
-			strcpy(new_client.userid, aux_username);
-			new_client.sender = client;
-			pthread_create(&tid, NULL, session_manager, &new_client);
+			else{
+				sendto(s_socket,"NACK",sizeof("NACK"),0,(struct sockaddr *)&client, client_len);
+				printf("ERROR: Login unsuccesful...\n");
+			}
 		}
 		else{
 			printf("Redirecting packet to session manager...");
 		}
+		memset(packet_buffer,0,1250);
+		memset(op_code,0,7);
 	}
 	return 0;
 }
