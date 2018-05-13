@@ -64,6 +64,7 @@ int login(struct sockaddr client, char packet_buffer[1250]){
 	for (i = 0; i < 20; i++){
 		aux_username[i] = packet_buffer[10+i];
 	}
+	create_home_dir(aux_username);
 	for(i = 0; i < 10; i++){
 		if(strcmp(client_list[i].userid,aux_username) == 0){
 			if(client_list[i].logged_in == 0){
