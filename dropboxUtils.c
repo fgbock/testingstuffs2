@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 
 struct file_info{
@@ -130,11 +132,58 @@ int send_string_to(int socket, char* str){
 }
 
 
-/*int receive_file_from(int socket, char* file_name){
-	
-}*/
+int receive_file_from(int socket, char* file_name){
+	int n, file;
 
-int send_file_to(int socket, char* file_name);
+	socklen_t clilen;
+	struct sockaddr_in cli_addr;
+	clilen = sizeof(struct sockaddr_in);
+
+	char buf[CHUNK];
+
+	file = open(buf, O_RDWR | O_CREAT, 0666);
+
+	while(n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)){
+		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0)break;
+		
+		write(file, buf, n);
+	}
+	
+	close(file);
+
+
+	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	if (n  < 0) 
+		return -1;
+
+	return 0;
+	
+}
+
+int send_file_to(int socket, char* file_name){
+	int n, file;	
+	char buf[CHUNK];
+	struct sockaddr_in serv_addr, from;  
+
+	file = open(file_name, O_RDONLY);
+
+	while((n=read(file, buf, CHUNK))>0){
+		sendto(socket, buf, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	}
+	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
+	sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+
+	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
+	
+	unsigned int length = sizeof(struct sockaddr_in);
+	n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		return -1;
+
+	free(bufACK);
+
+	return 0;
+}
 
 
 //#endif
