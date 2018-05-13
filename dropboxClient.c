@@ -22,7 +22,7 @@ int mustexit = FALSE;
 char userID[20];
 char host[20];
 int port;
-
+//======================================================
 int login_server(char *host,int port){
 	int sockfd, n;
 	unsigned int length;
@@ -61,14 +61,23 @@ void sync_client(){
 }
 
 void send_file(char *file){
-	int x = 2+2;
+	int sockfd;
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
 
+	send_file_to(int sockfd, file);
+
+	close(sockfd);
 }
 
 void get_file(char *file){
-	int x = 2+2;
+	int sockfd;
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
 
+	receive_file_from(sockfd, file);
 
+	close(sockfd);
 }
 
 void delete_file(char *file){
@@ -77,9 +86,37 @@ void delete_file(char *file){
 }
 
 void close_session(){
-	int x = 2+2;
+	int sockfd, n;
+	unsigned int length;
+	struct sockaddr_in serv_addr, from;
+	struct hostent *server;
+	char buffer[1250];
+	strcpy(buffer,"closesession0000");
+	strcat(buffer,userID);
+	server = gethostbyname(host);
+	if (server == NULL) {
+				fprintf(stderr,"ERROR, no such host\n");
+				exit(0);
+		}
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
+	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (n < 0)
+		printf("ERROR sendto");
+	length = sizeof(struct sockaddr_in);
+	n = recvfrom(sockfd, buffer, 256, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		printf("ERROR recvfrom");
+	printf("Got an ack: %s\n", buffer);
+	close(sockfd);
 
 }
+//=======================================================
+
 
 char * getArgument(char command[100]){
 	char* argument;
