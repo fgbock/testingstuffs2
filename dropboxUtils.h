@@ -1,5 +1,5 @@
-//#ifndef DROPBOXUTILS_C
-//#define DROPBOXUTILS_C
+//#ifndef DROPBOXUTILS_HEADER
+//#define DROPBOXUTILS_HEADER
 
 #include<string.h>
 #include<stdlib.h>

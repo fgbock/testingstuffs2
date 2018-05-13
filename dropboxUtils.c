@@ -1,5 +1,5 @@
-//#ifndef DROPBOXUTILS_HEADER
-//#define DROPBOXUTILS_HEADER
+//#ifndef DROPBOXUTILS_C
+//#define DROPBOXUTILS_C
 #include"dropboxUtils.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -242,6 +242,29 @@ int send_file_to(int socket, char* file_name){
 
 	return 0;
 }
+
+void sync_server(int socket,  char*userID){
+	int n_files = receive_int_from(socket); //número de arquivos a serem atualizados
+
+	for(int i=0; i<n_files; i++){
+		char *file = receive_string_from(socket); //cliente manda nome do arquivo a ser alterado/criado
+
+		char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+		
+		strcpy(path, "~/dropboxserver/");
+		strcat(path, userID);
+		strcat(path, "/");
+		strcat(path, file); //arquivo será salvo no server
+
+
+		receive_file_from(socket, path); //cliente manda o arquivo
+
+		free(file);
+		free(path);
+	}
+	return;
+}
+
 
 
 //#endif
