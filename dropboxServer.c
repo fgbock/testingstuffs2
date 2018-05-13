@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/queue.h>
 #include "dropboxUtils.h"
 
 #define MAIN_PORT 6000
@@ -30,6 +31,7 @@ struct client {
 struct session {
 	int client_id;
 	int client_address_len;
+	int can_receive;
 	struct sockaddr client_address;
 	char session_buffer[1250];
 };
@@ -87,7 +89,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	new_session->client_address = client;
 	new_session->client_address_len = client_len;
 	for(i = 0; i < 20; i++){
-		if (socket_cmp(&(session_list[i]),new_session)== 0){
+		if (socket_cmp(&(session_list[i]),new_session)== 0 && session_list[i].can_receive){
 			strcpy(session_list[i].session_buffer,packet_buffer);
 			return 0;
 		}
@@ -126,6 +128,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len){
 				new_session.client_id = i; 
 				new_session.client_address = client;
 				new_session.client_address_len = client_len;
+				new_session.can_receive = 1;
 				session_list[aux_index] = new_session;
 				printf("New session created, added device to active client:\n");
 				pthread_create(&tid, NULL, session_manager, &new_session);	
@@ -141,6 +144,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len){
 			new_session.client_id = i; // Inform the session of the client's index in the list
 			new_session.client_address = client;
 			new_session.client_address_len = client_len;
+			new_session.can_receive = 1;
 			session_list[aux_index] = new_session;
 			printf("New session created:\n");
 			pthread_create(&tid, NULL, session_manager, &new_session);
