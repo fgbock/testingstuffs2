@@ -83,11 +83,58 @@ int send_int_to(int socket, int op){
 
 
 char* receive_string_from(int socket){
+	int str_size = receive_int_from(socket); //recebe o tamamho do string a ser lido
+
+	char *buf = malloc(sizeof(char)*str_size);
+
+	int n;
+	socklen_t clilen;
+	struct sockaddr_in cli_addr;
+	clilen = sizeof(struct sockaddr_in);
+
+	n = recvfrom(socket,buf, str_size, 0, (struct sockaddr *) &cli_addr, &clilen);
+	if (n < 0) 
+		return NULL;
 	
+	//retorna o ack
+	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	if (n  < 0) 
+		return NULL;
+
+	return buf;
 }
 
-int send_string_to(int socket, char* str);
+int send_string_to(int socket, char* str){
+	int str_size = strlen(str);
+	
+	send_int_to(socket, str_size); //envia o tam do string a ser lido pro server
 
+	int n;	
+	struct sockaddr_in serv_addr, from;  
+	
+	n = sendto(socket, str, str_size, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (n < 0) 
+		return -1;
+
+	char *buf = malloc(sizeof(char)*3); //para receber o ack
+	
+	unsigned int length = sizeof(struct sockaddr_in);
+	n = recvfrom(socket, buf, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		return -1;
+
+	free(buf);
+
+	return 0;
+
+}
+
+
+/*int receive_file_from(int socket, char* file_name){
+	
+}*/
+
+int send_file_to(int socket, char* file_name);
 
 
 //#endif
