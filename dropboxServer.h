@@ -21,7 +21,7 @@ struct file_info {
 }
 
 
-void sync_server();
+void sync_server(int socket,  char*userID);
 
 void receive_file(char *file, int socket, char*userID);
 

@@ -1,5 +1,5 @@
-//#ifndef DROPBOXUTILS_HEADER
-//#define DROPBOXUTILS_HEADER
+//#ifndef DROPBOXUTILS_C
+//#define DROPBOXUTILS_C
 #include"dropboxUtils.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -242,6 +242,7 @@ int send_file_to(int socket, char* file_name){
 
 	return 0;
 }
+
 
 
 //#endif
