@@ -197,7 +197,7 @@ int receive_file_from(int socket, char* file_name){
 
 	char buf[CHUNK];
 
-	file = open(buf, O_RDWR | O_CREAT, 0666);
+	file = open(file_name, O_RDWR | O_CREAT, 0666);
 
 	while(n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)){
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0)break;
