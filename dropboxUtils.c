@@ -228,7 +228,7 @@ int send_file_to(int socket, char* file_name){
 	file = open(file_name, O_RDONLY);
 
 	while((n=read(file, buf, CHUNK))>0){
-		strcat(bufTrue,"---packet");
+		strcat(bufTrue,"packet");
 		strcat(bufTrue,itoa(counter)); //pacote é packet<numerodopacote><DATACHUNK>
 		strcat(bufTrue,buf);
 		strcpy(mensagemdeconfirmacao,"");
