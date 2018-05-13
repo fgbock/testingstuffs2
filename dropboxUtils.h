@@ -11,6 +11,10 @@
 
 int create_home_dir(char *userID);
 
+int create_server_userdir(char *userID);
+
+int create_server_root();
+
 int receive_int_from(int socket);
 
 int send_int_to(int socket, int op);
