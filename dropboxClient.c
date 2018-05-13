@@ -1,7 +1,6 @@
 #ifndef DROPBOXCLIENT_C
 #define DROPBOXCLIENT_C
 
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -11,45 +10,72 @@
 #include "dropboxUtils.h"
 #include <unistd.h>
 #include <time.h>
-
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #define SOCKET int
 #define TRUE 1
 #define FALSE 0
-
 int is_syncing = FALSE;
 int mustexit = FALSE;
-
-char userID[100];
-char host[100];
-char porta[100];
-
-
-
+char userID[20];
+char host[20];
+int port;
 
 int login_server(char *host,int port){
-
-	return 0;
+	int sockfd, n;
+	unsigned int length;
+	struct sockaddr_in serv_addr, from;
+	struct hostent *server;
+	char buffer[1250];
+	strcpy(buffer,"logins0000");
+	strcat(buffer,userID);
+	server = gethostbyname(host);
+	if (server == NULL) {
+				fprintf(stderr,"ERROR, no such host\n");
+				exit(0);
+		}
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
+	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	if (n < 0)
+		printf("ERROR sendto");
+	length = sizeof(struct sockaddr_in);
+	n = recvfrom(sockfd, buffer, 256, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+		printf("ERROR recvfrom");
+	printf("Got an ack: %s\n", buffer);
+	close(sockfd);
+	return 1;
 }
+
 void sync_client(){
 	int x = 2+2;
 
 
 }
+
 void send_file(char *file){
 	int x = 2+2;
 
 }
+
 void get_file(char *file){
 	int x = 2+2;
 
 
 }
+
 void delete_file(char *file){
 	int x = 2+2;
 
-
 }
+
 void close_session(){
 	int x = 2+2;
 
@@ -119,9 +145,7 @@ void treat_command(char command[100]){
 	//printf("Seu comando foi: %s \n",command);
 }
 
-
-void *thread_sync(void *vargp)
-{
+void *thread_sync(void *vargp){
 		int must_sync = FALSE;
 		is_syncing = TRUE;
 
@@ -135,8 +159,8 @@ void *thread_sync(void *vargp)
 		is_syncing = FALSE;
     pthread_exit((void *)NULL);
 }
-void *thread_interface(void *vargp)
-{
+
+void *thread_interface(void *vargp){
 		char command[100];
 		printf("Escreva uma ação para o sistema:\n");
 
@@ -149,10 +173,9 @@ void *thread_interface(void *vargp)
     pthread_exit((void *)NULL);
 }
 
-
-
 int main(int argc,char *argv[]){
 	int loginworked = FALSE;
+	char strporta[100];
 
 	if (argc!=4){
 		printf("Escreva no formato: ./dropboxClient <ID_do_usuário> <endereço_do_host> <porta>\n");
@@ -160,9 +183,10 @@ int main(int argc,char *argv[]){
 	else{ //wrote correcly the arguments
 		strcpy(userID,argv[1]);
 		strcpy(host,argv[2]);
-		strcpy(porta,argv[3]);
-		//login_server(char *host,int port);
-		loginworked = TRUE;
+		strcpy(strporta,argv[3]);
+		port = atoi(strporta);
+
+		loginworked = login_server(host,port);
 		if(!loginworked){
 			printf("Login não funcionou!");
 		}
