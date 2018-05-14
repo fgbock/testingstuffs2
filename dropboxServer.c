@@ -43,116 +43,6 @@ int client_active[10];
 int session_active[20];
 int session_counter = 0;
 
-// Auxiliary Functions
-int min(int right, int left){
-	if(right > left){
-		return left;
-	}
-	else{
-		return right;
-	}
-}
-
-int get_session_spot(){
-	int i;
-	for (i = 0; i < 20; i++){
-		if(session_active[i] == 0){
-			return i;
-		}
-	}
-	return -1;
-}
-
-int get_sequence_num(char packet_buffer[1250]){
-	char aux_str[5];
-	int i, value;
-	for(i = 0; i < 4; i++){
-		aux_str[i] = packet_buffer[6+i];
-	}
-	aux_str[4] = '\0';
-	value = *(int *) aux_str;
-	printf("Val is: %d", value);
-	return value;
-}
-
-int socket_cmp(struct session *left, struct session *right){
-    socklen_t min_address_len = min(left->client_address_len, right->client_address_len);
-    // If head matches, longer is greater.
-    int default_rv = right->client_address_len - left->client_address_len;
-    int rv = memcmp(left, right, min_address_len);
-    return rv ?: default_rv;
-}
-
-int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
-	int i;
-	struct session *new_session;
-	new_session->client_address = client;
-	new_session->client_address_len = client_len;
-	for(i = 0; i < 20; i++){
-		if (socket_cmp(&(session_list[i]),new_session)== 0 && session_list[i].can_receive){
-			strcpy(session_list[i].session_buffer,packet_buffer);
-			return 0;
-		}
-	}
- 	return 1;
-}
-
-void *session_manager(void *args){
-	struct session *client_session;
-	client_session = (struct session *) args;
-	printf("Client ID is: %d\n\n", client_session->client_id);
-}
-
-int login(char packet_buffer[1250], struct sockaddr client, int client_len){
- 	char aux_username[20];
-	struct client new_client;
-	struct session new_session;
-	pthread_t tid;
-	int i, not_done = 1, aux_index;
-	// Verify client list
-	for (i = 0; i < 20; i++){
-		aux_username[i] = packet_buffer[10+i];
-	}
-	aux_index = get_session_spot();
-	if (aux_index == -1){
-		return 0;
-	}
-	create_home_dir(aux_username);
-	for(i = 0; i < 10; i++){
-		if(strcmp(client_list[i].userid,aux_username) == 0){
-			if(client_list[i].logged_in == 0){
-				return 0;
-			}
-			else{			
-				client_list[i].logged_in = 0; // Update logged_in
-				new_session.client_id = i; 
-				new_session.client_address = client;
-				new_session.client_address_len = client_len;
-				new_session.can_receive = 1;
-				session_list[aux_index] = new_session;
-				printf("New session created, added device to active client:\n");
-				pthread_create(&tid, NULL, session_manager, &new_session);	
-				return 1;
-			}
-		}
-	}
-	for(i = 0; i < 10; i++){
-		if(client_active[i] == 0){
-			strcpy(new_client.userid, aux_username); // Set userid
-			new_client.logged_in = 1; // Set logged_in
-			client_list[i] = new_client; // Place new client into the client list
-			new_session.client_id = i; // Inform the session of the client's index in the list
-			new_session.client_address = client;
-			new_session.client_address_len = client_len;
-			new_session.can_receive = 1;
-			session_list[aux_index] = new_session;
-			printf("New session created:\n");
-			pthread_create(&tid, NULL, session_manager, &new_session);
-			return 1;
-		}
-	}
-}
-
 // Specification subroutines
 void sync_server(int socket,  char*userID){
 	int n_files = receive_int_from(socket); //número de arquivos a serem atualizados
@@ -204,6 +94,140 @@ void receive_file(char *file, int socket, char*userID){
 	
 	receive_file_from(socket, path);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	free(path);
+}
+
+// Auxiliary Functions
+int min(int right, int left){
+	if(right > left){
+		return left;
+	}
+	else{
+		return right;
+	}
+}
+
+int get_session_spot(){
+	int i;
+	for (i = 0; i < 20; i++){
+		if(session_active[i] == 0){
+			return i;
+		}
+	}
+	return -1;
+}
+
+int get_sequence_num(int s_id){
+	char aux_str[5];
+	int i, value;
+	for(i = 0; i < 4; i++){
+		aux_str[i] = session_list[s_id].session_buffer[6+i];
+	}
+	aux_str[4] = '\0';
+	value = *(int *) aux_str;
+	printf("Val is: %d", value);
+	return value;
+}
+
+int socket_cmp(struct session *left, struct session *right){
+    socklen_t min_address_len = min(left->client_address_len, right->client_address_len);
+    // If head matches, longer is greater.
+    int default_rv = right->client_address_len - left->client_address_len;
+    int rv = memcmp(left, right, min_address_len);
+    return rv ?: default_rv;
+}
+
+int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
+	int i;
+	struct session *new_session;
+	new_session->client_address = client;
+	new_session->client_address_len = client_len;
+	for(i = 0; i < 20; i++){
+		if (socket_cmp(&(session_list[i]),new_session)== 0 && session_list[i].can_receive){
+			session_list[i].can_receive = 0;
+			strcpy(session_list[i].session_buffer,packet_buffer);
+			return 0;
+		}
+	}
+ 	return 1;
+}
+
+void *session_manager(void *args){
+	int seq_num, online = 1, s_id = (int) args, c_id, aux;
+	printf("Client ID is: %d\n\n", session_list[s_id]);
+	char op_code[7];
+	while(online){
+		if(session_list[s_id].can_receive == 0){
+			printf("Time to handle a request...\n");
+			strncpy(op_code,packet_buffer,6);
+			op_code[6] = '\0';
+			if (strcmp(op_code,"downlo") == 0){
+
+			}
+			else if (strcmp(op_code,"upload") == 0){
+
+			}
+			else if (strcmp(op_code,"closes") == 0){
+				session_active[s_id] = 0;
+				c_id = session_list[s_id].client_id;
+				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
+				//
+			}
+			else if (strcmp(op_code,"delete") == 0){
+				
+			}
+		}
+	} 
+}
+
+int login(char packet_buffer[1250], struct sockaddr client, int client_len){
+ 	char aux_username[20];
+	struct client new_client;
+	struct session new_session;
+	pthread_t tid;
+	int i, not_done = 1, aux_index;
+	// Verify client list
+	for (i = 0; i < 20; i++){
+		aux_username[i] = packet_buffer[10+i];
+	}
+	aux_index = get_session_spot();
+	if (aux_index == -1){
+		return 0;
+	}
+	session_active[aux_index] = 1;
+	create_home_dir(aux_username);
+	for(i = 0; i < 10; i++){
+		if(strcmp(client_list[i].userid,aux_username) == 0){
+			if(client_list[i].logged_in == 0){
+				return 0;
+			}
+			else{			
+				client_list[i].logged_in = 0; // Update logged_in
+				new_session.client_id = i; 
+				new_session.client_address = client;
+				new_session.client_address_len = client_len;
+				new_session.can_receive = 1;
+				session_list[aux_index] = new_session;
+				printf("New session created, added device to active client:\n");
+				pthread_create(&tid, NULL, session_manager, aux_index);	
+				return 1;
+			}
+		}
+	}
+	for(i = 0; i < 10; i++){
+		if(client_active[i] == 0){
+			strcpy(new_client.userid, aux_username); // Set userid
+			new_client.logged_in = 1; // Set logged_in
+			client_list[i] = new_client; // Place new client into the client list
+			new_session.client_id = i; // Inform the session of the client's index in the list
+			new_session.client_address = client;
+			new_session.client_address_len = client_len;
+			new_session.can_receive = 1;
+			session_list[aux_index] = new_session;
+			printf("New session created:\n");
+			pthread_create(&tid, NULL, session_manager, aux_index);
+			return 1;
+		}
+	}
 }
 
 // Server's main thread
