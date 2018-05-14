@@ -32,6 +32,7 @@ struct session {
 	int client_id;
 	int client_address_len;
 	int can_receive;
+	SOCKET socket;
 	struct sockaddr client_address;
 	char session_buffer[1250];
 };
@@ -152,13 +153,14 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 }
 
 void *session_manager(void *args){
+	char op_code[7];
 	int seq_num, online = 1, s_id = (int) args, c_id, aux;
 	printf("Client ID is: %d\n\n", session_list[s_id].client_id);
-	char op_code[7];
+	SOCKET socket = session_list[s_id].socket;
 	while(online){
 		if(session_list[s_id].can_receive == 0){
 			printf("Time to handle a request...\n");
-			strncpy(op_code,packet_buffer,6);
+			strncpy(op_code,session_list[s_id].session_buffer,6);
 			op_code[6] = '\0';
 			if (strcmp(op_code,"downlo") == 0){
 
@@ -179,7 +181,7 @@ void *session_manager(void *args){
 	} 
 }
 
-int login(char packet_buffer[1250], struct sockaddr client, int client_len){
+int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCKET s_socket){
  	char aux_username[20];
 	struct client new_client;
 	struct session new_session;
@@ -206,6 +208,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len){
 				new_session.client_address = client;
 				new_session.client_address_len = client_len;
 				new_session.can_receive = 1;
+				new_session.socket = s_socket;
 				session_list[aux_index] = new_session;
 				printf("New session created, added device to active client:\n");
 				pthread_create(&tid, NULL, session_manager, aux_index);	
@@ -222,6 +225,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len){
 			new_session.client_address = client;
 			new_session.client_address_len = client_len;
 			new_session.can_receive = 1;
+			new_session.socket = s_socket;
 			session_list[aux_index] = new_session;
 			printf("New session created:\n");
 			pthread_create(&tid, NULL, session_manager, aux_index);
@@ -286,7 +290,7 @@ int main(int argc,char *argv[]){
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
-			if (login(packet_buffer, client, client_len)){
+			if (login(packet_buffer, client, client_len, s_socket)){
 				strncpy(ack_buffer,"ACKACK",6);
 				for(i = 0; i < 4; i++){
 					ack_buffer[6+i] = packet_buffer[6+i];
