@@ -20,6 +20,10 @@
 #define SOCKET int
 #define TRUE 1
 #define FALSE 0
+
+#define EVENT_SIZE  ( sizeof (struct inotify_event) )
+#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
+
 int is_syncing = FALSE;
 int mustexit = FALSE;
 char userID[20];
@@ -61,66 +65,7 @@ int login_server(char *host,int port){
 	return 1;
 }
 
-void sync_client(){
-	char path[256];
-	strcpy(path, "~/sync_dir_");
-	strcat(path, userID);
 
-
-	int length, i = 0;
-	int fd;
-	int wd;
-	char buffer[BUF_LEN];
-	fd = inotify_init();
-	wd = inotify_add_watch(fd,path,IN_MODIFY | IN_CREATE | IN_DELETE );
-	length = read( fd, buffer, BUF_LEN );
-
-	if ( length < 0 ) {
-		perror( "read" );
-	}
-
-	while ( i < length ) {
-		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
-		if ( event->len ) {
-			if ( event->mask & IN_CREATE ) {
-				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was created.\n", event->name );
-					strcat(path,event->name);
-					send_file(path);
-				}
-				else {
-					//printf( "The file %s was created.\n", event->name );
-				}
-			}
-			else if ( event->mask & IN_DELETE ) {
-				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was deleted.\n", event->name );
-				}
-				else {
-					//printf( "The file %s was deleted.\n", event->name );
-					strcat(path,event->name);
-					delete_file(path);
-				}
-			}
-			else if ( event->mask & IN_MODIFY ) {
-				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was modified.\n", event->name );
-				}
-				else {
-					//printf( "The file %s was modified.\n", event->name );
-					strcat(path,event->name);
-					send_file(path);
-				}
-			}
-		}
-		i += EVENT_SIZE + event->len;
-	}
-
-	( void ) inotify_rm_watch( fd, wd );
-	( void ) close( fd );
-
-
-}
 
 void send_file(char *file){
 	int sockfd, n;
@@ -239,6 +184,68 @@ void delete_file(char *file){
 
 }
 
+void sync_client(){
+	char path[256];
+	strcpy(path, "~/sync_dir_");
+	strcat(path, userID);
+
+
+	int length, i = 0;
+	int fd;
+	int wd;
+	char buffer[BUF_LEN];
+	fd = inotify_init();
+	wd = inotify_add_watch(fd,path,IN_MODIFY | IN_CREATE | IN_DELETE );
+	length = read( fd, buffer, BUF_LEN );
+
+	if ( length < 0 ) {
+		perror( "read" );
+	}
+
+	while ( i < length ) {
+		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+		if ( event->len ) {
+			if ( event->mask & IN_CREATE ) {
+				if ( event->mask & IN_ISDIR ) {
+					//printf( "The directory %s was created.\n", event->name );
+					strcat(path,event->name);
+					send_file(path);
+				}
+				else {
+					//printf( "The file %s was created.\n", event->name );
+				}
+			}
+			else if ( event->mask & IN_DELETE ) {
+				if ( event->mask & IN_ISDIR ) {
+					//printf( "The directory %s was deleted.\n", event->name );
+				}
+				else {
+					//printf( "The file %s was deleted.\n", event->name );
+					strcat(path,event->name);
+					delete_file(path);
+				}
+			}
+			else if ( event->mask & IN_MODIFY ) {
+				if ( event->mask & IN_ISDIR ) {
+					//printf( "The directory %s was modified.\n", event->name );
+				}
+				else {
+					//printf( "The file %s was modified.\n", event->name );
+					strcat(path,event->name);
+					send_file(path);
+				}
+			}
+		}
+		i += EVENT_SIZE + event->len;
+	}
+
+	( void ) inotify_rm_watch( fd, wd );
+	( void ) close( fd );
+
+
+}
+
+
 void close_session(){
 	int sockfd, n;
 	unsigned int length;
@@ -309,7 +316,7 @@ void list_server(){
 		i++;
 		j++;
 	}
-	printf(buffer);
+	printf("%s",buffer);
 }
 
 void list_client(){
