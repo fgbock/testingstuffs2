@@ -13,6 +13,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <dirent.h>
+
 
 #define SOCKET int
 #define TRUE 1
@@ -143,28 +145,41 @@ void delete_file(char *file){
 	char ackesperado[100];
 	char bufferack[100];
 	int recebeuack = FALSE;
+	int ret;
+	FILE *fp;
 
-	strcpy(ackesperado,"ACKdelete0000");
-	strcpy(buffer,"delete0000");
-	strcat(buffer,file);
-	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
-	length = sizeof(struct sockaddr_in);
-
-	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
-		if (!strcmp(ackesperado,bufferack)){
-			recebeuack = TRUE;
+	fp = fopen (file,"r");
+  if (fp == NULL) {
+      printf ("Arquivo não existe\n");
+  }
+	else{
+		strcpy(ackesperado,"ACKdelete0000");
+		strcpy(buffer,"delete0000");
+		strcat(buffer,file);
+		server = gethostbyname(host);
+		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			printf("ERROR opening socket");
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(port);
+		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+		bzero(&(serv_addr.sin_zero), 8);
+		length = sizeof(struct sockaddr_in);
+		while(!recebeuack){
+			n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+			if (!strcmp(ackesperado,bufferack)){
+				recebeuack = TRUE;
+			}
 		}
 	}
-
 	close(sockfd);
+	ret = remove(file);
+
+	if(ret == 0) {
+		 printf("Arquivo foi deletado com sucesso!\n");
+	} else {
+		 printf("Algo deu errado...\n");
+	}
 
 }
 
@@ -211,6 +226,7 @@ void list_server(){
 	char ackesperado[100];
 	char bufferack[100];
 	int recebeuack = FALSE;
+	int i,j;
 
 	strcpy(ackesperado,"ACKlist_f0000");
 	strcpy(buffer,"list_f0000");
@@ -226,17 +242,39 @@ void list_server(){
 	while(!recebeuack){
 		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
-		if (!strcmp(ackesperado,bufferack)){
+		if (!strncmp(ackesperado,bufferack,13)){
 			recebeuack = TRUE;
 		}
 	}
-
 	close(sockfd);
 
+	i = 0; j=13;
+	while(bufferack[j]!= '\0'){
+		buffer[i]=bufferack[j];
+		i++;
+		j++;
+	}
+	printf(buffer);
 }
 
 
 void list_client(){
+
+  DIR *dp;
+  struct dirent *ep;
+	char saida[100];
+
+  dp = opendir ("./");
+  if (dp != NULL)
+    {
+      while (ep = readdir (dp))
+        strcpy(saida,ep->d_name);
+				printf("%s",saida);
+      (void) closedir (dp);
+    }
+  else
+    perror ("Couldn't open the directory");
+
 
 }
 
