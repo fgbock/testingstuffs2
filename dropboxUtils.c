@@ -13,6 +13,8 @@
 #include <asm/errno.h>
 #include <dirent.h>
 
+#define TRUE 1
+#define FALSE 0
 
 struct file_info{
 	char name[MAXNAME];
@@ -190,19 +192,47 @@ int send_string_to(int socket, char* str){
 
 int receive_file_from(int socket, char* file_name){
 	int n, file;
-
 	socklen_t clilen;
 	struct sockaddr_in cli_addr;
-	clilen = sizeof(struct sockaddr_in);
-
 	char buf[CHUNK];
+	clilen = sizeof(struct sockaddr_in);
+	int recebeutudo = FALSE;
+	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
+	counter = 0;
+	char mensagemdeconfirmacao[100];
+	char mensagemdeconfirmacaoanterior[100];
+	char mensagemesperada[100];
 
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
 
-	while(n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)){
-		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0)break;
+	while(!recebeutudo){
+		strcpy(mensagemesperada,"");
+		strcat(mensagemesperada,"packet");
+		strcat(mensagemesperada,itoa(counter)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		strcpy(mensagemdeconfirmacao,"");
+		strcat(mensagemdeconfirmacao,"ACKpacket");
+		strcat(mensagemdeconfirmacao,itoa(counter)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		strcpy(mensagemdeconfirmacaoanterior,"");
+		strcat(mensagemdeconfirmacaoanterior,"ACKpacket");
+		strcat(mensagemdeconfirmacaoanterior,itoa(counter-1)); //mensagem de confirmacao é ACKpacket<numerodopacote>
 
-		write(file, buf, n);
+		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)
+
+		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
+			recebeutudo = TRUE;
+			sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		}
+		else{
+			if(!strncmp(buf,mensagemesperada,6)){ //se recebeu o pacote correto
+				write(file, buf, n);
+				sendto(socket, mensagemdeconfirmacao, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			}
+			else{ //se recebeu o pacote anterior
+				sendto(socket, mensagemdeconfirmacaoanterior, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			}
+		}
+
+		counter++;
 	}
 
 	close(file);
