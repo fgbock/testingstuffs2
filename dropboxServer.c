@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <sys/queue.h>
 #include "dropboxUtils.h"
+#include <dirent.h>
 
 #define MAIN_PORT 6000
 
@@ -106,8 +107,23 @@ int delete_file(char *file, int socket, char*userID){
 	return 0;
 }
 
-void list_files(int socket, char*userID){
+void list_files(SOCKET socket, struct sockaddr thing){
+  DIR *dp;
+  struct dirent *ep;
+	char saida[110];
+	strcpy(saida,"ACKlist_f0000\0");
 
+  dp = opendir ("./");
+  if (dp != NULL)
+    {
+      while (ep = readdir (dp)){
+        strcat(saida,ep->d_name);
+    }
+    sendto(socket,saida,sizeof(saida),0,(struct sockaddr *)&thing, sizeof(thing));
+      (void) closedir (dp);
+    }
+  else
+    perror ("Couldn't open the directory");
 }
 
 
@@ -201,7 +217,7 @@ void *session_manager(void *args){
 			}
       		else if (!strcmp(op_code,"list_f")){
        			argument = getArgument(packet_buffer);
-        		list_files(socket,client_list[session_list[s_id].client_id].userid);
+        		list_files(socket,thing);
 			}
 			else if (strcmp(op_code,"closes")){
 				session_active[s_id] = 0;
