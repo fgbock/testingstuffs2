@@ -153,7 +153,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 
 void *session_manager(void *args){
 	int seq_num, online = 1, s_id = (int) args, c_id, aux;
-	printf("Client ID is: %d\n\n", session_list[s_id]);
+	printf("Client ID is: %d\n\n", session_list[s_id].client_id);
 	char op_code[7];
 	while(online){
 		if(session_list[s_id].can_receive == 0){
