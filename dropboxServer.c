@@ -99,8 +99,11 @@ void receive_file(char *file, int socket, char*userID){
 
 // Auxiliary Functions
 
-void delete_file(char *file, int socket, char*userID){
-
+int delete_file(char *file, int socket, char*userID){
+	if(remove(file) == 0){
+		return 1;
+	}
+	return 0;
 }
 
 void list_files(int socket, char*userID){
@@ -171,39 +174,40 @@ void *session_manager(void *args){
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-
+	struct sockaddr thing = session_list[s_id].client_address;
 
 
 	printf("Client ID is: %d\n\n", session_list[s_id].client_id);
 	SOCKET socket = session_list[s_id].socket;
-  while(online){
+  	while(online){
 		if(session_list[s_id].can_receive == 0){
 			printf("Time to handle a request...\n");
-      n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
+      		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
 			strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
-
 			if (!strcmp(op_code,"downlo")){
-        argument = getArgument(packet_buffer);
-        send_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+        		argument = getArgument(packet_buffer);
+        		send_file(argument,socket,client_list[session_list[s_id].client_id].userid);
 			}
 			else if (!strcmp(op_code,"upload")){
-        argument = getArgument(packet_buffer);
-        receive_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+        		argument = getArgument(packet_buffer);
+        		receive_file(argument,socket,client_list[session_list[s_id].client_id].userid);
 			}
-      else if (!strcmp(op_code,"delete")){
-        argument = getArgument(packet_buffer);
-        delete_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+      		else if (!strcmp(op_code,"delete")){
+        		argument = getArgument(packet_buffer);
+        		if (delete_file(argument,socket,client_list[session_list[s_id].client_id].userid)){
+        			sendto(socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&thing, sizeof(thing));
+        		}
 			}
-      else if (!strcmp(op_code,"list_f")){
-        argument = getArgument(packet_buffer);
-        list_files(socket,client_list[session_list[s_id].client_id].userid);
+      		else if (!strcmp(op_code,"list_f")){
+       			argument = getArgument(packet_buffer);
+        		list_files(socket,client_list[session_list[s_id].client_id].userid);
 			}
 			else if (strcmp(op_code,"closes")){
 				session_active[s_id] = 0;
 				c_id = session_list[s_id].client_id;
 				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
-				//
+				sendto(socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&thing, sizeof(thing));
 			}
 		}
 	}
