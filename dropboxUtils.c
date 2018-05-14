@@ -12,6 +12,14 @@
 #include <sys/types.h>
 #include <asm/errno.h>
 #include <dirent.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -49,6 +57,22 @@ int create_home_dir(char *userID){
 	}
 	free(path);
 	return ret;
+}
+
+char * getArgument(char command[100]){
+	char* argument;
+	int i=0; int j=0;
+	argument = (char*) malloc(sizeof(char)*100);
+	while(command[i]!=' ')
+		i++;
+	while(command[i]==' ')
+		i++;
+	while((command[i]!=' ')||(command[i]!='\0')){
+		argument[j]= command[i];
+		i++;
+		j++;
+	}
+	return argument;
 }
 
 int create_server_root(){
@@ -198,25 +222,29 @@ int receive_file_from(int socket, char* file_name){
 	clilen = sizeof(struct sockaddr_in);
 	int recebeutudo = FALSE;
 	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
-	counter = 0;
+	int counter = 0;
 	char mensagemdeconfirmacao[100];
 	char mensagemdeconfirmacaoanterior[100];
 	char mensagemesperada[100];
+	struct sockaddr_in serv_addr, from;
+	char bufferitoa[100];
 
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
 
 	while(!recebeutudo){
 		strcpy(mensagemesperada,"");
 		strcat(mensagemesperada,"packet");
-		strcat(mensagemesperada,itoa(counter)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		sprintf(bufferitoa,"%d",counter);
+		strcat(mensagemesperada,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		strcpy(mensagemdeconfirmacao,"");
 		strcat(mensagemdeconfirmacao,"ACKpacket");
-		strcat(mensagemdeconfirmacao,itoa(counter)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		strcpy(mensagemdeconfirmacaoanterior,"");
 		strcat(mensagemdeconfirmacaoanterior,"ACKpacket");
-		strcat(mensagemdeconfirmacaoanterior,itoa(counter-1)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		sprintf(bufferitoa,"%d",(counter-1));
+		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 
-		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen)
+		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen);
 
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
@@ -249,21 +277,23 @@ int receive_file_from(int socket, char* file_name){
 int send_file_to(int socket, char* file_name){
 	int n, file,counter;
 	char buf[CHUNK];
-	char bufTrue[CHUNK+OPCODE]
+	char bufTrue[CHUNK+OPCODE];
 	char mensagemdeconfirmacao[100];
 	struct sockaddr_in serv_addr, from;
 	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
 	counter = 0;
-
+	unsigned int length = sizeof(struct sockaddr_in);
 	file = open(file_name, O_RDONLY);
+	char bufferitoa[100];
 
 	while((n=read(file, buf, CHUNK))>0){
 		strcat(bufTrue,"packet");
-		strcat(bufTrue,itoa(counter)); //pacote é packet<numerodopacote><DATACHUNK>
+		sprintf(bufferitoa,"%d",counter);
+		strcat(bufTrue,bufferitoa); //pacote é packet<numerodopacote><DATACHUNK>
 		strcat(bufTrue,buf);
 		strcpy(mensagemdeconfirmacao,"");
 		strcat(mensagemdeconfirmacao,"ACKpacket");
-		strcat(mensagemdeconfirmacao,itoa(counter)); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
 			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
@@ -278,7 +308,7 @@ int send_file_to(int socket, char* file_name){
 
 
 
-	unsigned int length = sizeof(struct sockaddr_in);
+
 	n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 		return -1;

@@ -52,7 +52,7 @@ void sync_server(int socket,  char*userID){
 		char *file = receive_string_from(socket); //cliente manda nome do arquivo a ser alterado/criado
 
 		char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
-		
+
 		strcpy(path, "~/dropboxserver/");
 		strcat(path, userID);
 		strcat(path, "/");
@@ -70,14 +70,14 @@ void sync_server(int socket,  char*userID){
 void send_file(char *file, int socket, char *userID){
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
 	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
-	
+
 	strcpy(path, "~/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
-	
+
 	send_file_to(socket, path);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
 	free(path);
 }
@@ -85,19 +85,29 @@ void send_file(char *file, int socket, char *userID){
 void receive_file(char *file, int socket, char*userID){
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
 	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
-	
+
 	strcpy(path, "~/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
-	
+
 	receive_file_from(socket, path);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	free(path);
 }
 
 // Auxiliary Functions
+
+void delete_file(char *file, int socket, char*userID){
+
+}
+
+void list_files(int socket, char*userID){
+
+}
+
+
 int min(int right, int left){
 	if(right > left){
 		return left;
@@ -154,31 +164,49 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 
 void *session_manager(void *args){
 	char op_code[7];
-	int seq_num, online = 1, s_id = (int) args, c_id, aux;
+	int seq_num, online = 1, s_id = (long) args, c_id, aux;
+  char * argument;
+  char packet_buffer[100];
+  int sockfd, n;
+	unsigned int length;
+	struct sockaddr_in serv_addr, from;
+	struct hostent *server;
+
+
+
 	printf("Client ID is: %d\n\n", session_list[s_id].client_id);
 	SOCKET socket = session_list[s_id].socket;
-	while(online){
+  while(online){
 		if(session_list[s_id].can_receive == 0){
 			printf("Time to handle a request...\n");
-			strncpy(op_code,session_list[s_id].session_buffer,6);
+      n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
+			strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
-			if (strcmp(op_code,"downlo") == 0){
 
+			if (!strcmp(op_code,"downlo")){
+        argument = getArgument(packet_buffer);
+        send_file(argument,socket,client_list[session_list[s_id].client_id].userid);
 			}
-			else if (strcmp(op_code,"upload") == 0){
-
+			else if (!strcmp(op_code,"upload")){
+        argument = getArgument(packet_buffer);
+        receive_file(argument,socket,client_list[session_list[s_id].client_id].userid);
 			}
-			else if (strcmp(op_code,"closes") == 0){
+      else if (!strcmp(op_code,"delete")){
+        argument = getArgument(packet_buffer);
+        delete_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+			}
+      else if (!strcmp(op_code,"list_f")){
+        argument = getArgument(packet_buffer);
+        list_files(socket,client_list[session_list[s_id].client_id].userid);
+			}
+			else if (strcmp(op_code,"closes")){
 				session_active[s_id] = 0;
 				c_id = session_list[s_id].client_id;
 				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
 				//
 			}
-			else if (strcmp(op_code,"delete") == 0){
-				
-			}
 		}
-	} 
+	}
 }
 
 int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCKET s_socket){
@@ -202,16 +230,16 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 			if(client_list[i].logged_in == 0){
 				return 0;
 			}
-			else{			
+			else{
 				client_list[i].logged_in = 0; // Update logged_in
-				new_session.client_id = i; 
+				new_session.client_id = i;
 				new_session.client_address = client;
 				new_session.client_address_len = client_len;
 				new_session.can_receive = 1;
 				new_session.socket = s_socket;
 				session_list[aux_index] = new_session;
 				printf("New session created, added device to active client:\n");
-				pthread_create(&tid, NULL, session_manager, aux_index);	
+				pthread_create(&tid, NULL, session_manager, &aux_index);
 				return 1;
 			}
 		}
@@ -228,7 +256,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 			new_session.socket = s_socket;
 			session_list[aux_index] = new_session;
 			printf("New session created:\n");
-			pthread_create(&tid, NULL, session_manager, aux_index);
+			pthread_create(&tid, NULL, session_manager, &aux_index);
 			return 1;
 		}
 	}
@@ -261,14 +289,14 @@ int main(int argc,char *argv[]){
 		printf("ERROR: Socket creation failure.\n");
 		exit(1);
 	}
-/*	
+/*
 	Configures domain, IP (set to any) and port (set to MAIN_PORT)
 	Binds s_socket to the client sockaddr_in structure
 */
 	 memset((void *) &server,0,sizeof(struct sockaddr_in));
 	 server.sin_family = AF_INET;
 	 server.sin_addr.s_addr = htonl(INADDR_ANY);
-	 server.sin_port = htons(MAIN_PORT); 
+	 server.sin_port = htons(MAIN_PORT);
 	 server_len = sizeof(server);
 	 if(bind(s_socket,(struct sockaddr *) &server, server_len)) {
 		  printf("Binding error\n");
@@ -276,7 +304,7 @@ int main(int argc,char *argv[]){
 	 }
 	printf("Socket initialized, waiting for requests.\n\n");
 /*
-	Main loop - receives packages and either 
+	Main loop - receives packages and either
 		1) redirects them to a session thread, where:
 			- it updates the folder (receive_file or sync are called)
 			- it sends a file (sync_client or send_file are called)
@@ -297,7 +325,7 @@ int main(int argc,char *argv[]){
 				}
 				ack_buffer[10] = '\0';
 				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
-				printf("Login succesful...\n");				
+				printf("Login succesful...\n");
 			}
 			else{
 				strncpy(ack_buffer,"NOTACK",6);

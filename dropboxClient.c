@@ -94,7 +94,7 @@ void send_file(char *file){
 		}
 	}
 
-	send_file_to(int sockfd, file);
+	recebeuack = send_file_to(sockfd, file);
 
 	close(sockfd);
 }
@@ -129,7 +129,7 @@ void get_file(char *file){
 		}
 	}
 
-	receive_file_from(sockfd, file);
+	recebeuack = receive_file_from(sockfd, file);
 
 	close(sockfd);
 }
@@ -180,7 +180,6 @@ void close_session(){
 
 	strcpy(ackesperado,"ACKcloses0000");
 	strcpy(buffer,"closes0000");
-	strcat(buffer,file);
 	server = gethostbyname(host);
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 		printf("ERROR opening socket");
@@ -203,23 +202,41 @@ void close_session(){
 //=======================================================
 
 
-char * getArgument(char command[100]){
-	char* argument;
-	int i=0; int j=0;
-	argument = (char*) malloc(sizeof(char)*100);
+void list_server(){
+	int sockfd, n;
+	unsigned int length;
+	struct sockaddr_in serv_addr, from;
+	struct hostent *server;
+	char buffer[256];
+	char ackesperado[100];
+	char bufferack[100];
+	int recebeuack = FALSE;
 
-	while(command[i]!=' ')
-		i++;
-	while(command[i]==' ')
-		i++;
+	strcpy(ackesperado,"ACKlist_f0000");
+	strcpy(buffer,"list_f0000");
+	server = gethostbyname(host);
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
+	length = sizeof(struct sockaddr_in);
 
-	while((command[i]!=' ')||(command[i]!='\0')){
-		argument[j]= command[i];
-		i++;
-		j++;
+	while(!recebeuack){
+		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		if (!strcmp(ackesperado,bufferack)){
+			recebeuack = TRUE;
+		}
 	}
 
-	return argument;
+	close(sockfd);
+
+}
+
+
+void list_client(){
 
 }
 
@@ -244,11 +261,11 @@ void treat_command(char command[100]){
 		result = 2;
 	}
 	else if (!strncmp("list_server",command,11)){
-		//printf("funcao 4\n");
+		list_server();
 		result = 3;
 	}
 	else if (!strncmp("list_client",command,11)){
-		//printf("funcao 5\n");
+		list_client();
 		result =4;
 	}
 	else if (!strncmp("get_sync_dir",command,12)){
