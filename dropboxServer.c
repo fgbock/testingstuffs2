@@ -184,17 +184,14 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 void *session_manager(void *args){
 	char op_code[7];
 	int seq_num, online = 1, s_id = (long) args, c_id, aux;
-  char * argument;
-  char packet_buffer[100];
-  int sockfd, n;
+  	char * argument;
+  	char packet_buffer[100];
+  	int sockfd, n;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-	struct sockaddr thing = session_list[s_id].client_address;
-
-
-	printf("Client ID is: %d\n\n", session_list[s_id].client_id);
-	SOCKET socket = session_list[s_id].socket;
+	struct sockaddr* thing = &(session_list[s_id].client_address);
+	SOCKET* socket = &(session_list[s_id].socket);
   	while(online){
 		if(session_list[s_id].can_receive == 0){
 			printf("Time to handle a request...\n");
@@ -203,27 +200,27 @@ void *session_manager(void *args){
 			op_code[6] = '\0';
 			if (!strcmp(op_code,"downlo")){
         		argument = getArgument(packet_buffer);
-        		send_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+        		send_file(argument,*socket,client_list[session_list[s_id].client_id].userid);
 			}
 			else if (!strcmp(op_code,"upload")){
         		argument = getArgument(packet_buffer);
-        		receive_file(argument,socket,client_list[session_list[s_id].client_id].userid);
+        		receive_file(argument,*socket,client_list[session_list[s_id].client_id].userid);
 			}
       		else if (!strcmp(op_code,"delete")){
         		argument = getArgument(packet_buffer);
-        		if (delete_file(argument,socket,client_list[session_list[s_id].client_id].userid)){
-        			sendto(socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&thing, sizeof(thing));
+        		if (delete_file(argument,*socket,client_list[session_list[s_id].client_id].userid)){
+        			sendto(*socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&thing, sizeof(thing));
         		}
 			}
       		else if (!strcmp(op_code,"list_f")){
        			argument = getArgument(packet_buffer);
-        		list_files(socket,thing);
+        		list_files(*socket,*thing);
 			}
 			else if (strcmp(op_code,"closes")){
 				session_active[s_id] = 0;
 				c_id = session_list[s_id].client_id;
 				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
-				sendto(socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&thing, sizeof(thing));
+				sendto(*socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&thing, sizeof(thing));
 			}
 		}
 	}
@@ -371,9 +368,10 @@ int main(int argc,char *argv[]){
 			}
 		}
 		// clear packet and auxiliaries
+		printf("\n\nBananion\n\n");
 		memset(packet_buffer,0,1250);
-		memset(op_code,0,7);
-		//TIME TO RESPOND - check send queue and do as appropriate:
+		printf("\n\nMegaBananion\n\n");
+		//T
 	}
 	return 0;
 }
