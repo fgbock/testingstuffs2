@@ -16,37 +16,34 @@
 
 // Structures
 struct file_info {
-	char name[MAXNAME];
-	char extension[MAXNAME];
-	char last_modified[MAXNAME];
-	int size;
+  char name[MAXNAME];
+  char extension[MAXNAME];
+  char last_modified[MAXNAME];
+  int size;
 };
 
 struct client {
-	SOCKET socket;
-	char userid [MAXNAME];
-	struct file_info info [MAXFILES];
-	//int logged_in;
+  int device[2];
+  char userid [MAXNAME];
+  struct file_info info [MAXFILES];
+  int logged_in;
 };
 
 struct session {
-	//int client_id;
-	int can_receive;
+	int client_id;
 	int client_address_len;
+	int can_receive;
+	SOCKET socket;
 	struct sockaddr client_address;
 	char session_buffer[1250];
-	int active;
 };
 
 // Global Variables
-//struct client client_list[10];
-//struct session session_list[20];
-//int client_active[10];
-//int session_active[20];
-int meme;
-struct session session_info_1;
-struct session session_info_2;
-struct client client_info;
+struct client client_list[10];
+struct session session_list[20];
+int client_active[10];
+int session_active[20];
+int session_counter = 0;
 
 // Specification subroutines
 void sync_server(int socket,  char*userID){
@@ -139,7 +136,6 @@ int min(int right, int left){
 	}
 }
 
-/*
 int get_session_spot(){
 	int i;
 	for (i = 0; i < 20; i++){
@@ -149,9 +145,7 @@ int get_session_spot(){
 	}
 	return -1;
 }
-*/
 
-/*
 int get_sequence_num(int s_id){
 	char aux_str[5];
 	int i, value;
@@ -163,10 +157,8 @@ int get_sequence_num(int s_id){
 	printf("Val is: %d", value);
 	return value;
 }
-*/
 
 int socket_cmp(struct session *left, struct session *right){
-	printf("pen1313");
     socklen_t min_address_len = min(left->client_address_len, right->client_address_len);
     // If head matches, longer is greater.
     int default_rv = right->client_address_len - left->client_address_len;
@@ -176,24 +168,9 @@ int socket_cmp(struct session *left, struct session *right){
 
 int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
 	int i;
-	struct session new_session;
-	new_session.client_address = client;
-	new_session.client_address_len = client_len;
-	
-	printf("bvenisp\n\n");
-	if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
-		session_info_1.can_receive = 0;
-		strcpy(session_info_1.session_buffer,packet_buffer);
-		return 0;
-	}
-	else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
-		session_info_1.can_receive = 0;
-		strcpy(session_info_1.session_buffer,packet_buffer);
-		return 0;
-	}
-	printf("bveepis\n\n");
-	return 0;
-	/*
+	struct session *new_session;
+	new_session->client_address = client;
+	new_session->client_address_len = client_len;
 	for(i = 0; i < 20; i++){
 		if (socket_cmp(&(session_list[i]),new_session)== 0 && session_list[i].can_receive){
 			session_list[i].can_receive = 0;
@@ -201,65 +178,49 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 			return 0;
 		}
 	}
-	*/
  	return 1;
 }
 
 void *session_manager(void *args){
 	char op_code[7];
-	int seq_num, online = 1, c_id, aux;
-	int *s_id = (int *) args;
+	int seq_num, online = 1, s_id = (long) args, c_id, aux;
   	char * argument;
   	char packet_buffer[100];
   	int sockfd, n;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-	struct session* current_session;
-	if ((*s_id) == 1){
-		current_session = &session_info_1;
-	}
-	else{
-		current_session = &session_info_2;
-	}
-	struct sockaddr thing = current_session->client_address;
-	length = current_session->client_address_len;
-	
-	//struct sockaddr* thing = &(session_list[s_id].client_address);
-	SOCKET socket = client_info.socket;
+	struct sockaddr* thing = &(session_list[s_id].client_address);
+	SOCKET* socket = &(session_list[s_id].socket);
   	while(online){
-		if((*current_session).can_receive == 0){
-			//printf("Time to handle a request...\n");
+		if(session_list[s_id].can_receive == 0){
+			printf("Time to handle a request...\n");
       		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
 			strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if (!strcmp(op_code,"downlo")){
         		argument = getArgument(packet_buffer);
-        		send_file(argument,socket,client_info.userid);
+        		send_file(argument,*socket,client_list[session_list[s_id].client_id].userid);
 			}
 			else if (!strcmp(op_code,"upload")){
         		argument = getArgument(packet_buffer);
-        		receive_file(argument,socket,client_info.userid);
+        		receive_file(argument,*socket,client_list[session_list[s_id].client_id].userid);
 			}
       		else if (!strcmp(op_code,"delete")){
         		argument = getArgument(packet_buffer);
-        		if (delete_file(argument,socket,client_info.userid)){
-        			sendto(socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&thing, sizeof(thing));
+        		if (delete_file(argument,*socket,client_list[session_list[s_id].client_id].userid)){
+        			sendto(*socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&thing, sizeof(thing));
         		}
 			}
       		else if (!strcmp(op_code,"list_f")){
        			argument = getArgument(packet_buffer);
-        		list_files(socket,thing);
+        		list_files(*socket,*thing);
 			}
 			else if (strcmp(op_code,"closes")){
-				(*current_session).active = 0;
-				sendto(socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&thing, sizeof(thing));
-				/*
 				session_active[s_id] = 0;
 				c_id = session_list[s_id].client_id;
 				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
 				sendto(*socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&thing, sizeof(thing));
-				*/
 			}
 		}
 	}
@@ -267,49 +228,20 @@ void *session_manager(void *args){
 
 int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCKET s_socket){
  	char aux_username[20];
-	//struct client new_client;
-	//struct session new_session;
+	struct client new_client;
+	struct session new_session;
 	pthread_t tid;
-	int i, not_done = 1, aux_index, s_id;
+	int i, not_done = 1, aux_index;
 	// Verify client list
-	
 	for (i = 0; i < 20; i++){
 		aux_username[i] = packet_buffer[10+i];
 	}
-	/*
 	aux_index = get_session_spot();
 	if (aux_index == -1){
 		return 0;
 	}
 	session_active[aux_index] = 1;
-	*/
 	create_home_dir(aux_username);
-	if(meme){
-		strcpy(client_info.userid,aux_username);
-		meme = 0;
-	}
-	if(session_info_1.active == 0){
-		session_info_1.client_address = client;
-		session_info_1.client_address_len = client_len;
-		session_info_1.can_receive = 1;
-		session_info_1.active = 1;
-		s_id = 1;
-		pthread_create(&tid, NULL, session_manager, &s_id);
-		return 1;
-	}
-	else if (session_info_2.active == 0){
-		session_info_2.client_address = client;
-		session_info_2.client_address_len = client_len;
-		session_info_2.can_receive = 1;
-		session_info_2.active = 1;
-		pthread_create(&tid, NULL, session_manager, &s_id);
-		return 1;
-	}
-	else{
-		return 0;
-	}
-	
-	/*
 	for(i = 0; i < 10; i++){
 		if(strcmp(client_list[i].userid,aux_username) == 0){
 			if(client_list[i].logged_in == 0){
@@ -345,7 +277,6 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 			return 1;
 		}
 	}
-	*/
 }
 
 // Server's main thread
@@ -356,11 +287,10 @@ int main(int argc,char *argv[]){
 	int server_len, received, i, online = 1, client_len = sizeof(struct sockaddr_in), login_value, seq_num;
 	char packet_buffer[1250];
 	char reply_buffer[1250];
-	char ack_buffer[20];
+	char ack_buffer[11];
 	char op_code[7];
-	meme = 1;
+
 	// Initializing client list (temporary measure - until we get a user list file)
-	/*
 	for(i = 0; i < 10; i++){
 		struct client new_client;
 		client_list[i] = new_client;
@@ -371,7 +301,6 @@ int main(int argc,char *argv[]){
 	for (i = 0; i < 20; i++){
 		session_active[i] = 0;
 	}
-	*/
 
 	if((s_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		printf("ERROR: Socket creation failure.\n");
@@ -391,9 +320,6 @@ int main(int argc,char *argv[]){
 		  exit(1);
 	 }
 	printf("Socket initialized, waiting for requests.\n\n");
-	
-	// WOW:
-	client_info.socket = s_socket;
 /*
 	Main loop - receives packages and either
 		1) redirects them to a session thread, where:
@@ -410,20 +336,20 @@ int main(int argc,char *argv[]){
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
 			if (login(packet_buffer, client, client_len, s_socket)){
-				strcpy(ack_buffer,"ACKlogins0000");
-				/*for(i = 0; i < 4; i++){
-					ack_buffer[6+i] = packet_buffer[6+i];
-				}*/
-				//ack_buffer[10] = '\0';
-				sendto(s_socket,ack_buffer,strlen(ack_buffer),0,(struct sockaddr *)&client, client_len);
-				printf("Login succesful...\n");
-			}
-			else{
-				strcpy(ack_buffer,"NOTACK");
+				strncpy(ack_buffer,"ACKACK",6);
 				for(i = 0; i < 4; i++){
 					ack_buffer[6+i] = packet_buffer[6+i];
 				}
-				//ack_buffer[10] = '\0';
+				ack_buffer[10] = '\0';
+				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
+				printf("Login succesful...\n");
+			}
+			else{
+				strncpy(ack_buffer,"NOTACK",6);
+				for(i = 0; i < 4; i++){
+					ack_buffer[6+i] = packet_buffer[6+i];
+				}
+				ack_buffer[10] = '\0';
 				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
 				printf("ERROR: Login unsuccesful...\n");
 			}
@@ -442,10 +368,9 @@ int main(int argc,char *argv[]){
 			}
 		}
 		// clear packet and auxiliaries
-		//printf("\n\nBananion\n\n");
+		printf("\n\nBananion\n\n");
 		memset(packet_buffer,0,1250);
-		memset(op_code,0,7);
-		//printf("\n\nMegaBananion\n\n");
+		printf("\n\nMegaBananion\n\n");
 		//T
 	}
 	return 0;
