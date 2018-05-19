@@ -351,7 +351,7 @@ int main(int argc,char *argv[]){
 	int server_len, received, i, online = 1, client_len = sizeof(struct sockaddr_in), login_value, seq_num;
 	char packet_buffer[1250];
 	char reply_buffer[1250];
-	char ack_buffer[11];
+	char ack_buffer[20];
 	char op_code[7];
 	meme = 1;
 	// Initializing client list (temporary measure - until we get a user list file)
@@ -405,20 +405,20 @@ int main(int argc,char *argv[]){
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
 			if (login(packet_buffer, client, client_len, s_socket)){
-				strncpy(ack_buffer,"ACKACK",6);
-				for(i = 0; i < 4; i++){
+				strcpy(ack_buffer,"ACKlogins0000");
+				/*for(i = 0; i < 4; i++){
 					ack_buffer[6+i] = packet_buffer[6+i];
-				}
-				ack_buffer[10] = '\0';
-				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
+				}*/
+				//ack_buffer[10] = '\0';
+				sendto(s_socket,ack_buffer,strlen(ack_buffer),0,(struct sockaddr *)&client, client_len);
 				printf("Login succesful...\n");
 			}
 			else{
-				strncpy(ack_buffer,"NOTACK",6);
+				strcpy(ack_buffer,"NOTACK");
 				for(i = 0; i < 4; i++){
 					ack_buffer[6+i] = packet_buffer[6+i];
 				}
-				ack_buffer[10] = '\0';
+				//ack_buffer[10] = '\0';
 				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
 				printf("ERROR: Login unsuccesful...\n");
 			}

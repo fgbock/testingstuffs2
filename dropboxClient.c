@@ -54,8 +54,9 @@ int login_server(char *host,int port){
 
 	while(!recebeuack){
 		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
-		if (!strcmp(ackesperado,bufferack)){
+		n = recvfrom(sockfd, bufferack, 13, 0, (struct sockaddr *) &from, &length);
+		bufferack[13] = '\0'; //wtf	
+		if (strcmp(ackesperado,bufferack)==0){
 			recebeuack = TRUE;
 		}
 	}
