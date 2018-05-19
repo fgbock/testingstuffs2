@@ -165,28 +165,32 @@ int get_sequence_num(int s_id){
 }
 */
 
+/*
 int socket_cmp(struct session *left, struct session *right){
-	printf("pen1313");
     socklen_t min_address_len = min(left->client_address_len, right->client_address_len);
     // If head matches, longer is greater.
     int default_rv = right->client_address_len - left->client_address_len;
     int rv = memcmp(left, right, min_address_len);
-    return rv ?: default_rv;
+    return rv;
 }
-
+*/
 int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
 	int i;
+	/*
 	struct session new_session;
 	new_session.client_address = client;
 	new_session.client_address_len = client_len;
-	
-	printf("bvenisp\n\n");
-	if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
+	*/
+	printf("\nLogin address: %s\n\n",client.sa_data);
+	printf("Struct address: %s\n\n",session_info_1.client_address.sa_data);
+	//if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
+	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
 		session_info_1.can_receive = 0;
 		strcpy(session_info_1.session_buffer,packet_buffer);
 		return 0;
 	}
-	else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
+	//else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
+	else if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
 		session_info_1.can_receive = 0;
 		strcpy(session_info_1.session_buffer,packet_buffer);
 		return 0;
