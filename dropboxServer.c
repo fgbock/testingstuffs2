@@ -181,8 +181,11 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	new_session.client_address = client;
 	new_session.client_address_len = client_len;
 	*/
-	printf("\nLogin address: %s\n\n",client.sa_data);
-	printf("Struct address: %s\n\n",session_info_1.client_address.sa_data);
+	for (i = 0; i < 14; i++){
+		printf("\nChar %d de client: %c\n",i, client.sa_data[i]);
+		printf("Char %d de session 1: %c\n",i, session_info_1.client_address.sa_data[i]);
+		printf("Char %d de session 2: %c\n\n",i, session_info_2.client_address.sa_data[i]);
+	}
 	//if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
 	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
 		session_info_1.can_receive = 0;
@@ -190,12 +193,12 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 		return 0;
 	}
 	//else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
-	else if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
+	else if (strcmp(client.sa_data,session_info_2.client_address.sa_data) == 0 && session_info_2.can_receive){
 		session_info_1.can_receive = 0;
-		strcpy(session_info_1.session_buffer,packet_buffer);
+		strcpy(session_info_2.session_buffer,packet_buffer);
 		return 0;
 	}
-	printf("bveepis\n\n");
+	printf("teste redirect\n\n");
 	return 0;
 	/*
 	for(i = 0; i < 20; i++){
