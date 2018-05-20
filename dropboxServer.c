@@ -188,7 +188,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	for (i = 0; i < 14; i++){
 		printf("\nChar %d de client: %c\n",i, client.sa_data[i]);
 		printf("Char %d de session 1: %c\n",i, session_info_1.client_address.sa_data[i]);
-		printf("Char %d de session 2: %c\n\n",i, session_info_2.client_address.sa_data[i]);
+		//printf("Char %d de session 2: %c\n\n",i, session_info_2.client_address.sa_data[i]);
 	}
 	//if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
 	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
@@ -419,6 +419,9 @@ int main(int argc,char *argv[]){
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
+			for (i = 0; i < 14; i++){
+				printf("\nChar %d de client original: %c\n",i, client.sa_data[i]);
+			}
 			if (login(packet_buffer, client, client_len, s_socket)){
 				strcpy(ack_buffer,"ACKlogins0000");
 				/*for(i = 0; i < 4; i++){
