@@ -293,7 +293,7 @@ int receive_file_from(int socket, char* file_name){
 
 }
 
-int send_file_to(int socket, char* file_name){
+int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	int n, file,counter;
 	char buf[CHUNK];
 	char bufTrue[CHUNK+OPCODE];
@@ -315,7 +315,7 @@ int send_file_to(int socket, char* file_name){
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
-			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
 			n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 			sleep(1);
 		}

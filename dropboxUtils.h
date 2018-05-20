@@ -3,6 +3,7 @@
 
 #include<string.h>
 #include<stdlib.h>
+#include <sys/socket.h>
 
 
 #define MAXNAME 20
@@ -28,7 +29,7 @@ int send_string_to(int socket, char* str);
 
 int receive_file_from(int socket, char* file_name);
 
-int send_file_to(int socket, char* file_name);
+int send_file_to(int socket, char* file_name, struct sockaddr destination);
 
 char * getArgument(char command[100]);
 

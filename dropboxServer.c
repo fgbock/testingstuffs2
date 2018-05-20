@@ -71,7 +71,7 @@ void sync_server(int socket,  char*userID){
 	return;
 }
 
-void send_file(char *file, int socket, char *userID){
+void send_file(char *file, int socket, char *userID, int session_id){
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
 	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
 
@@ -81,8 +81,12 @@ void send_file(char *file, int socket, char *userID){
 	strcat(path, file);
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
-
-	send_file_to(socket, path);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+	if (session_id == 1){
+		send_file_to(socket, path, session_info_1.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+	}
+	else if (session_id == 2){
+		send_file_to(socket, path, session_info_2.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+	}
 	free(path);
 }
 
@@ -242,7 +246,7 @@ void *session_manager(void *args){
 			op_code[6] = '\0';
 			if (!strcmp(op_code,"downlo")){
         		argument = getArgument(packet_buffer);
-        		send_file(argument,socket,client_info.userid);
+        		send_file(argument,socket,client_info.userid,*s_id);
 			}
 			else if (!strcmp(op_code,"upload")){
         		argument = getArgument(packet_buffer);
@@ -280,7 +284,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 	int i, not_done = 1, aux_index, s_id;
 	// Verify client list
 
-	strcpy(aux_username,&packet_buffer[10]);
+	strncpy(aux_username,&(packet_buffer[10]),20);
 	/*
 	aux_index = get_session_spot();
 	if (aux_index == -1){
@@ -288,7 +292,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 	}
 	session_active[aux_index] = 1;
 	*/
-	create_home_dir_server(aux_username);
+	create_server_userdir(aux_username);
 	if(meme){
 		strcpy(client_info.userid,aux_username);
 		meme = 0;
@@ -406,6 +410,7 @@ int main(int argc,char *argv[]){
 			- it sends a file (sync_client or send_file are called)
 		2) uses their info to create a new session thread
 */
+	create_server_root();
 	while(online){
 		received = recvfrom(s_socket,packet_buffer,sizeof(packet_buffer),0,(struct sockaddr *) &client,(socklen_t *)&client_len);
 		if (!received){
