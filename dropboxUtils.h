@@ -1,5 +1,5 @@
-//#ifndef DROPBOXUTILS_HEADER
-//#define DROPBOXUTILS_HEADER
+#ifndef DROPBOXUTILS_HEADER
+#define DROPBOXUTILS_HEADER
 
 #include<string.h>
 #include<stdlib.h>
@@ -31,4 +31,5 @@ int receive_file_from(int socket, char* file_name);
 int send_file_to(int socket, char* file_name);
 
 char * getArgument(char command[100]);
-//#endif
+
+#endif

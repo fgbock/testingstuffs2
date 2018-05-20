@@ -1,5 +1,6 @@
-//#ifndef DROPBOXUTILS_C
-//#define DROPBOXUTILS_C
+#ifndef DROPBOXUTILS_C
+#define DROPBOXUTILS_C
+
 #include"dropboxUtils.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -135,7 +136,6 @@ int create_server_userdir(char *userID){
 	return ret;
 }
 
-
 int receive_int_from(int socket){
 	//retorn número de op recebido no socket socket, ou -1(op inválida) caso erro
 	int n;
@@ -186,7 +186,6 @@ int send_int_to(int socket, int op){
 	return 0;
 }
 
-
 char* receive_string_from(int socket){
 	int str_size = receive_int_from(socket); //recebe o tamamho do string a ser lido
 
@@ -233,7 +232,6 @@ int send_string_to(int socket, char* str){
 	return 0;
 
 }
-
 
 int receive_file_from(int socket, char* file_name){
 	int n, file;
@@ -343,4 +341,4 @@ int send_file_to(int socket, char* file_name){
 
 
 
-//#endif
+#endif

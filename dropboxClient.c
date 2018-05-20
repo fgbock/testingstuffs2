@@ -74,8 +74,6 @@ int login_server(char *host,int port){
 	return 1;
 }
 
-
-
 void send_file(char *file){
 	int sockfd, n;
 	unsigned int length;
@@ -254,7 +252,6 @@ void sync_client(){
 
 }
 
-
 void close_session(){
 	int sockfd, n;
 	unsigned int length;
@@ -287,7 +284,6 @@ void close_session(){
 	close(sockfd);
 }
 //=======================================================
-
 void list_server(){
 	int sockfd, n;
 	unsigned int length;
