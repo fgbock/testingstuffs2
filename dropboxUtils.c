@@ -44,40 +44,46 @@ int create_home_dir(char *userID){
 	char *path = malloc((strlen(userID)+15)*sizeof(char));
 	//strcpy(dir, "mkdir ~/");
 	strcpy(path, "~/sync_dir_");
-	strcat(path, userID);
-	DIR *dir = opendir(path);
+	strcat(path, userID);    //forma o path utilizando o user id
+
 	int ret=0;
-	if(dir){
-		closedir(dir); //diretório já existe, apenas fechamos ele
-	}else if(ENOENT==errno){ //diretório não existe!!
-		char *syscmd = malloc((strlen(userID)+20)*sizeof(char));
-		strcpy(syscmd, "mkdir ");
-		strcat(syscmd, path);
-		ret = system(syscmd);
-		free(syscmd);
-	}
+	
+	char *syscmd = malloc((((strlen(userID)+15)*2)+50)*sizeof(char));
+
+	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
+	strcat(syscmd, path);	 
+	strcat(syscmd, " ];then\n mkdir ");
+	strcat(syscmd, path);
+	strcat(syscmd, "\nfi");
+
+	ret = system(syscmd);  //chama o comando
+	free(syscmd);
+	
 	free(path);
 	return ret;
 }
 
 int create_home_dir_server(char *userID){
 	//cria diretório com nome do user no HOME do user, chamado pelo cliente
-	char path[100];
+	char *path = malloc((strlen(userID)+30)*sizeof(char));
 	//strcpy(dir, "mkdir ~/");
 	strcpy(path, "~/dropboxserver/sync_dir_");
 	strcat(path, userID);
-	DIR *dir = opendir(path);
+
 	int ret=0;
-	if(dir){
-		closedir(dir); //diretório já existe, apenas fechamos ele
-	}else if(ENOENT==errno){ //diretório não existe!!
-		char syscmd[200];
-		strcpy(syscmd, "mkdir ");
-		strcat(syscmd, path);
-		ret = system(syscmd);
-		//free(syscmd);
-	}
-	//free(path);
+	
+	char *syscmd = malloc((((strlen(userID)+23)*2)+50)*sizeof(char));
+
+	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
+	strcat(syscmd, path);	 
+	strcat(syscmd, " ];then\n mkdir ");
+	strcat(syscmd, path);
+	strcat(syscmd, "\nfi");
+	ret = system(syscmd);
+	
+	free(syscmd);
+
+	free(path);
 	return ret;
 }
 
@@ -103,15 +109,16 @@ int create_server_root(){
 	strcpy(path, "~/dropboxserver");
 	DIR *dir = opendir(path);
 	int ret=0;
-	if(dir){
-		closedir(dir); //diretório já existe, apenas fechamos ele
-	}else if(ENOENT==errno){ //diretório não existe!!
-		char *syscmd = malloc(20*sizeof(char));
-		strcpy(syscmd, "mkdir ");
-		strcat(syscmd, path);
-		ret = system(syscmd);
-		free(syscmd);
-	}
+
+	char *syscmd = malloc(65*sizeof(char));
+
+	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
+	strcat(syscmd, path);	 
+	strcat(syscmd, " ];then\n mkdir ");
+	strcat(syscmd, path);
+	strcat(syscmd, "\nfi");
+	ret = system(syscmd);
+	
 	free(path);
 	return ret;
 }
@@ -121,17 +128,18 @@ int create_server_userdir(char *userID){
 	char *path = malloc((strlen(userID)+17)*sizeof(char));
 	strcpy(path, "~/dropboxserver/");
 	strcat(path, userID);
-	DIR *dir = opendir(path);
+
 	int ret=0;
-	if(dir){
-		closedir(dir); //diretório já existe, apenas fechamos ele
-	}else if(ENOENT==errno){ //diretório não existe!!
-		char *syscmd = malloc((strlen(userID)+25)*sizeof(char));
-		strcpy(syscmd, "mkdir ");
-		strcat(syscmd, path);
-		ret = system(syscmd);
-		free(syscmd);
-	}
+	
+	char *syscmd = malloc((((strlen(userID)+16)*2)+50)*sizeof(char));
+
+	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
+	strcat(syscmd, path);	 
+	strcat(syscmd, " ];then\n mkdir ");
+	strcat(syscmd, path);
+	strcat(syscmd, "\nfi");
+	ret = system(syscmd);
+	
 	free(path);
 	return ret;
 }
