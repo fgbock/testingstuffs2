@@ -386,10 +386,10 @@ int main(int argc,char *argv[]){
 		printf("ERROR: Socket creation failure.\n");
 		exit(1);
 	}
-/*
-	Configures domain, IP (set to any) and port (set to MAIN_PORT)
-	Binds s_socket to the client sockaddr_in structure
-*/
+	/*
+		Configures domain, IP (set to any) and port (set to MAIN_PORT)
+		Binds s_socket to the client sockaddr_in structure
+	*/
 	 memset((void *) &server,0,sizeof(struct sockaddr_in));
 	 server.sin_family = AF_INET;
 	 server.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -403,13 +403,13 @@ int main(int argc,char *argv[]){
 
 	// WOW:
 	client_info.socket = s_socket;
-/*
-	Main loop - receives packages and either
-		1) redirects them to a session thread, where:
-			- it updates the folder (receive_file or sync are called)
-			- it sends a file (sync_client or send_file are called)
-		2) uses their info to create a new session thread
-*/
+	/*
+		Main loop - receives packages and either
+			1) redirects them to a session thread, where:
+				- it updates the folder (receive_file or sync are called)
+				- it sends a file (sync_client or send_file are called)
+			2) uses their info to create a new session thread
+	*/
 	create_server_root();
 	while(online){
 		received = recvfrom(s_socket,packet_buffer,sizeof(packet_buffer),0,(struct sockaddr *) &client,(socklen_t *)&client_len);
