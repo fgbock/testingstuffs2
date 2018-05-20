@@ -293,7 +293,7 @@ int receive_file_from(int socket, char* file_name){
 
 }
 
-int send_file_to(int socket, char* file_name/*, struct sockaddr destination*/){
+int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	int n, file,counter;
 	char buf[CHUNK];
 	char bufTrue[CHUNK+OPCODE];
@@ -338,7 +338,5 @@ int send_file_to(int socket, char* file_name/*, struct sockaddr destination*/){
 
 	return 0;
 }
-
-
 
 #endif

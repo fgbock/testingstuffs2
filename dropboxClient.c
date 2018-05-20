@@ -1,7 +1,6 @@
 #ifndef DROPBOXCLIENT_C
 #define DROPBOXCLIENT_C
 
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -17,7 +16,6 @@
 #include <dirent.h>
 #include <sys/inotify.h>
 
-
 #define SOCKET int
 #define TRUE 1
 #define FALSE 0
@@ -31,12 +29,15 @@ int mustexit = FALSE;
 char userID[20];
 char host[20];
 int port;
+int socket_local;
+struct sockaddr_in serv_addr;
+struct hostent *server;
+
 //=======================================================
 int login_server(char *host,int port){
-	int sockfd, n;
+	int n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
-	struct hostent *server;
+	struct sockaddr_in from;
 	char buffer[BUFFERSIZE];
 	char ackesperado[100];
 	char bufferack[100];
@@ -51,68 +52,55 @@ int login_server(char *host,int port){
 	strcpy(ackesperado,"ACKlogins0000");
 	strcpy(buffer,"logins0000");
 	strcat(buffer,userID);
-	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
+
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, 13, 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, 13, 0, (struct sockaddr *) &from, &length);
 		bufferack[13] = '\0'; //wtf
 		if (strcmp(ackesperado,bufferack)==0){
 			recebeuack = TRUE;
 		}
 	}
 
-	close(sockfd);
 
 	return 1;
 }
 
 void send_file(char *file){
-	int sockfd, n;
+	int n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
+	struct sockaddr_in from;
 	struct hostent *server;
 	char buffer[256];
 	char ackesperado[100];
 	char bufferack[100];
 	int recebeuack = FALSE;
+	struct sockaddr* destiny;
 
 	strcpy(ackesperado,"ACKupload0000");
 	strcpy(buffer,"upload0000");
 	strcat(buffer,file);
-	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
+
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
+	destiny = (struct sockaddr*) &serv_addr;
+	recebeuack = send_file_to(socket_local, file,*destiny);
 
-	recebeuack = send_file_to(sockfd, file);
-
-	close(sockfd);
 }
 
 void get_file(char *file){
-	int sockfd, n;
+	int n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
+	struct sockaddr_in  from;
 	struct hostent *server;
 	char buffer[256];
 	char ackesperado[100];
@@ -122,32 +110,25 @@ void get_file(char *file){
 	strcpy(ackesperado,"ACKdownlo0000");
 	strcpy(buffer,"downlo0000");
 	strcat(buffer,file);
-	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
+
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
 
-	recebeuack = receive_file_from(sockfd, file);
+	recebeuack = receive_file_from(socket_local, file);
 
-	close(sockfd);
 }
 
 void delete_file(char *file){
-	int sockfd, n;
+	int n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
+	struct sockaddr_in from;
 	struct hostent *server;
 	char buffer[256];
 	char ackesperado[100];
@@ -164,23 +145,16 @@ void delete_file(char *file){
 		strcpy(ackesperado,"ACKdelete0000");
 		strcpy(buffer,"delete0000");
 		strcat(buffer,file);
-		server = gethostbyname(host);
-		if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-			printf("ERROR opening socket");
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_port = htons(port);
-		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-		bzero(&(serv_addr.sin_zero), 8);
+
 		length = sizeof(struct sockaddr_in);
 		while(!recebeuack){
-			n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+			n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
 			if (!strcmp(ackesperado,bufferack)){
 				recebeuack = TRUE;
 			}
 		}
 	}
-	close(sockfd);
 	ret = remove(file);
 
 	if(ret == 0) {
@@ -253,9 +227,9 @@ void sync_client(){
 }
 
 void close_session(){
-	int sockfd, n;
+	int  n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
+	struct sockaddr_in  from;
 	struct hostent *server;
 	char buffer[100];
 	char ackesperado[100];
@@ -264,28 +238,21 @@ void close_session(){
 
 	strcpy(ackesperado,"ACKcloses0000");
 	strcpy(buffer,"closes0000");
-	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
+
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
 
-	close(sockfd);
 }
 //=======================================================
 void list_server(){
-	int sockfd, n;
+	int socket_local, n;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
@@ -298,7 +265,7 @@ void list_server(){
 	strcpy(ackesperado,"ACKlist_f0000");
 	strcpy(buffer,"list_f0000");
 	server = gethostbyname(host);
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+	if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 		printf("ERROR opening socket");
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(port);
@@ -307,13 +274,12 @@ void list_server(){
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
-		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(sockfd, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
 		if (!strncmp(ackesperado,bufferack,13)){
 			recebeuack = TRUE;
 		}
 	}
-	close(sockfd);
 
 	i = 0; j=13;
 	while(bufferack[j]!= '\0'){
@@ -432,6 +398,13 @@ int main(int argc,char *argv[]){
 		strcpy(host,argv[2]);
 		strcpy(strporta,argv[3]);
 		port = atoi(strporta);
+		server = gethostbyname(host);
+		if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			printf("ERROR opening socket");
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(port);
+		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+		bzero(&(serv_addr.sin_zero), 8);
 
 		loginworked = login_server(host,port);
 		if(!loginworked){
@@ -462,8 +435,5 @@ int main(int argc,char *argv[]){
 
 	return 0;
 }
-
-
-
 
 #endif

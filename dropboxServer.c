@@ -82,10 +82,10 @@ void send_file(char *file, int socket, char *userID, int session_id){
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
 	if (session_id == 1){
-		send_file_to(socket, path/*, session_info_1.client_address*/);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+		send_file_to(socket, path, session_info_1.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
 	}
 	else if (session_id == 2){
-		send_file_to(socket, path/*, session_info_2.client_address*/);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
+		send_file_to(socket, path, session_info_2.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
 	}
 	free(path);
 }
