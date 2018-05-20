@@ -1,6 +1,7 @@
 #ifndef DROPBOXCLIENT_C
 #define DROPBOXCLIENT_C
 
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -20,6 +21,7 @@
 #define SOCKET int
 #define TRUE 1
 #define FALSE 0
+#define BUFFERSIZE 1250
 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
@@ -35,10 +37,16 @@ int login_server(char *host,int port){
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-	char buffer[1250];
+	char buffer[BUFFERSIZE];
 	char ackesperado[100];
 	char bufferack[100];
+	int i;
 	int recebeuack = FALSE;
+
+	create_home_dir(userID);
+
+	for (i=0;i<BUFFERSIZE;i++)
+		buffer[i]='\0';
 
 	strcpy(ackesperado,"ACKlogins0000");
 	strcpy(buffer,"logins0000");
@@ -55,7 +63,7 @@ int login_server(char *host,int port){
 	while(!recebeuack){
 		n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(sockfd, bufferack, 13, 0, (struct sockaddr *) &from, &length);
-		bufferack[13] = '\0'; //wtf	
+		bufferack[13] = '\0'; //wtf
 		if (strcmp(ackesperado,bufferack)==0){
 			recebeuack = TRUE;
 		}

@@ -231,7 +231,7 @@ void *session_manager(void *args){
 	}
 	struct sockaddr thing = current_session->client_address;
 	length = current_session->client_address_len;
-	
+
 	//struct sockaddr* thing = &(session_list[s_id].client_address);
 	SOCKET socket = client_info.socket;
   	while(online){
@@ -279,10 +279,8 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 	pthread_t tid;
 	int i, not_done = 1, aux_index, s_id;
 	// Verify client list
-	
-	for (i = 0; i < 20; i++){
-		aux_username[i] = packet_buffer[10+i];
-	}
+
+	strcpy(aux_username,&packet_buffer[10]);
 	/*
 	aux_index = get_session_spot();
 	if (aux_index == -1){
@@ -290,7 +288,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 	}
 	session_active[aux_index] = 1;
 	*/
-	create_home_dir(aux_username);
+	create_home_dir_server(aux_username);
 	if(meme){
 		strcpy(client_info.userid,aux_username);
 		meme = 0;
@@ -315,7 +313,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 	else{
 		return 0;
 	}
-	
+
 	/*
 	for(i = 0; i < 10; i++){
 		if(strcmp(client_list[i].userid,aux_username) == 0){
@@ -398,7 +396,7 @@ int main(int argc,char *argv[]){
 		  exit(1);
 	 }
 	printf("Socket initialized, waiting for requests.\n\n");
-	
+
 	// WOW:
 	client_info.socket = s_socket;
 /*

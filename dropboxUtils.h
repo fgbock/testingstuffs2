@@ -12,6 +12,8 @@
 
 int create_home_dir(char *userID);
 
+int create_home_dir_server(char *userID);
+
 int create_server_userdir(char *userID);
 
 int create_server_root();

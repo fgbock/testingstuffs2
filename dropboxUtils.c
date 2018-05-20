@@ -59,6 +59,27 @@ int create_home_dir(char *userID){
 	return ret;
 }
 
+int create_home_dir_server(char *userID){
+	//cria diretório com nome do user no HOME do user, chamado pelo cliente
+	char path[100];
+	//strcpy(dir, "mkdir ~/");
+	strcpy(path, "~/dropboxserver/sync_dir_");
+	strcat(path, userID);
+	DIR *dir = opendir(path);
+	int ret=0;
+	if(dir){
+		closedir(dir); //diretório já existe, apenas fechamos ele
+	}else if(ENOENT==errno){ //diretório não existe!!
+		char syscmd[200];
+		strcpy(syscmd, "mkdir ");
+		strcat(syscmd, path);
+		ret = system(syscmd);
+		//free(syscmd);
+	}
+	//free(path);
+	return ret;
+}
+
 char * getArgument(char command[100]){
 	char* argument;
 	int i=0; int j=0;
