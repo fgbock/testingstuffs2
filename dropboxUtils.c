@@ -81,7 +81,7 @@ int create_home_dir_server(char *userID){
 	return ret;
 }
 
-char * getArgument(char command[100]){
+char * getArgument(char* command){
 	char* argument;
 	int i=0; int j=0;
 	argument = (char*) malloc(sizeof(char)*100);
@@ -89,7 +89,7 @@ char * getArgument(char command[100]){
 		i++;
 	while(command[i]==' ')
 		i++;
-	while((command[i]!=' ')||(command[i]!='\0')){
+	while((command[i]!=' ')&&(command[i]!='\0')){
 		argument[j]= command[i];
 		i++;
 		j++;

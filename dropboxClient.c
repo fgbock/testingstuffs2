@@ -227,7 +227,7 @@ void sync_client(){
 }
 
 void close_session(){
-	int  n;
+	int n;
 	unsigned int length;
 	struct sockaddr_in  from;
 	struct hostent *server;
@@ -244,17 +244,19 @@ void close_session(){
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		printf("recebeu errado %d\n",n);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
+			printf("recebeu certo %d\n",n);
 		}
 	}
 
 }
 //=======================================================
 void list_server(){
-	int socket_local, n;
+	int n;
 	unsigned int length;
-	struct sockaddr_in serv_addr, from;
+	struct sockaddr_in  from;
 	struct hostent *server;
 	char buffer[256];
 	char ackesperado[100];
@@ -264,13 +266,6 @@ void list_server(){
 
 	strcpy(ackesperado,"ACKlist_f0000");
 	strcpy(buffer,"list_f0000");
-	server = gethostbyname(host);
-	if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		printf("ERROR opening socket");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
 	length = sizeof(struct sockaddr_in);
 
 	while(!recebeuack){
@@ -399,12 +394,17 @@ int main(int argc,char *argv[]){
 		strcpy(strporta,argv[3]);
 		port = atoi(strporta);
 		server = gethostbyname(host);
+
+
 		if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 			printf("ERROR opening socket");
 		serv_addr.sin_family = AF_INET;
 		serv_addr.sin_port = htons(port);
 		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 		bzero(&(serv_addr.sin_zero), 8);
+
+		printf("Socket pelo qual o cliente está enviando coisas: %d\n",socket_local);
+
 
 		loginworked = login_server(host,port);
 		if(!loginworked){
