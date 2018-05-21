@@ -481,7 +481,7 @@ int main(int argc,char *argv[]){
 		}
 		else if (!strcmp(op_code,"upload")){
         	argument = getArgument(packet_buffer);
-			sendto(s_socket,"ACKupload0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+					sendto(s_socket,"ACKupload0000",sizeof("ACKupload0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
         	receive_file(argument,s_socket,userid);
 		}
       	else if (!strcmp(op_code,"delete")){
