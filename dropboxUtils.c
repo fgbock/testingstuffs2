@@ -302,13 +302,18 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
 	counter = 0;
 	unsigned int length = sizeof(struct sockaddr_in);
+
+	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
+
 	file = open(file_name, O_RDONLY);;
 	char bufferitoa[100];
 	printf("T1\n\n");
 
-	printf("filename is %s\n",file_name);
+		
+
+	printf("filename is .%s.\n",file_name);
 	n=read(file, buf, CHUNK);
-	printf("o que saiu do file: %s\n",buf);
+	printf("o que saiu do file: %d\n",n);
 	while(n>0){
 		strcat(bufTrue,"packet");
 		sprintf(bufferitoa,"%d",counter);
