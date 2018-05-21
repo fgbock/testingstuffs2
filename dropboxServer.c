@@ -191,6 +191,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
 		session_info_1.can_receive = 0;
 		strcpy(session_info_1.session_buffer,packet_buffer);
+		printf("session buffer: %s packet buffer: %s",session_info_1.session_buffer,packet_buffer);
 		return 0;
 	}
 	//else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
@@ -255,7 +256,7 @@ void *session_manager(void *args){
 				current_session = &session_info_2;
 				strcpy(packet_buffer, session_info_2.session_buffer);
 			}
-		//printf("\npacket na session: %s \n", packet_buffer);			
+		//printf("\npacket na session: %s \n", packet_buffer);
 	strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if(op_code[0] != '\0'){
@@ -439,7 +440,7 @@ int main(int argc,char *argv[]){
 		if (!received){
 			printf("ERROR: Package reception error.\n\n");
 		}
-		printf("\n%s\n", packet_buffer);
+		//printf("\n%s\n", packet_buffer);
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
