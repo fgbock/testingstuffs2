@@ -388,6 +388,7 @@ int main(int argc,char *argv[]){
 	char ack_buffer[20];
 	char op_code[7];
 	char * argument;
+	char userid[20];
 	meme = 1;
 	// Initializing client list (temporary measure - until we get a user list file)
 	/*
@@ -440,6 +441,7 @@ int main(int argc,char *argv[]){
 		printf("\n%s\n", packet_buffer);
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
+		strncpy(userid,&(packet_buffer[10]),20);
 		if (strcmp(op_code,"logins") == 0){
 		/*	for (i = 0; i < 14; i++){
 				printf("\nChar %d de client original: %d\n",i, (int)client.sa_data[i]);
@@ -471,16 +473,16 @@ int main(int argc,char *argv[]){
 		}
 		if (!strcmp(op_code,"downlo")){
         	argument = getArgument(packet_buffer);
-        	send_file(argument,s_socket,client_info.userid,1);
+        	send_file(argument,s_socket,userid,1);
 		}
 		else if (!strcmp(op_code,"upload")){
         	argument = getArgument(packet_buffer);
 			sendto(s_socket,"ACKupload0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
-        	receive_file(argument,s_socket,client_info.userid);
+        	receive_file(argument,s_socket,userid);
 		}
       	else if (!strcmp(op_code,"delete")){
         	argument = getArgument(packet_buffer);
-        	if (delete_file(argument,s_socket,client_info.userid)){
+        	if (delete_file(argument,s_socket,userid)){
         		sendto(s_socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&client, sizeof(client));
         	}
 		}
