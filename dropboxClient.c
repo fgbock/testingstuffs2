@@ -88,6 +88,7 @@ void send_file(char *file){
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
+		bufferack[13] = '\0';
 		printf("Ack recebido: %s\n",bufferack);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;

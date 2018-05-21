@@ -247,6 +247,9 @@ void *session_manager(void *args){
       		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
 			strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
+			if(op_code[0] != '\0'){
+				printf("Opcode is %s\n\n",op_code);
+			}
 			if(n>0){
 				printf("entrou nessa coisa %s\n",op_code);
 			}
