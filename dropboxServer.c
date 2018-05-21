@@ -245,8 +245,17 @@ void *session_manager(void *args){
 		if((*current_session).can_receive == 0){
 			//printf("Time to handle a request...\n");
       		//n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
-			strcpy(packet_buffer, current_session->session_buffer);
-		printf("\npacket na session: %s \n", packet_buffer);			
+			if ((*s_id) == 1){
+				current_session = &session_info_1;
+				strcpy(packet_buffer, session_info_1.session_buffer);
+				printf("Bado: %s\n",packet_buffer);
+				printf("Buceta de touro: %s\n",session_info_1.session_buffer);
+			}
+			else{
+				current_session = &session_info_2;
+				strcpy(packet_buffer, session_info_2.session_buffer);
+			}
+		//printf("\npacket na session: %s \n", packet_buffer);			
 	strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if(n>0){
