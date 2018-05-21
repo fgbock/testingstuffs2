@@ -81,6 +81,8 @@ void send_file(char *file){
 
 	strcpy(ackesperado,"ACKupload0000");
 	strcpy(buffer,"upload0000");
+	strcat(buffer,userID);
+	strcat(buffer," ");
 	strcat(buffer,file);
 
 	length = sizeof(struct sockaddr_in);

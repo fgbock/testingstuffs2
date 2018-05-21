@@ -311,6 +311,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	unsigned int length = sizeof(struct sockaddr_in);
 	file = open(file_name, O_RDONLY);
 	char bufferitoa[100];
+	printf("T1\n\n");
 
 	while((n=read(file, buf, CHUNK))>0){
 		strcat(bufTrue,"packet");
@@ -320,8 +321,9 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 		strcpy(mensagemdeconfirmacao,"");
 		strcat(mensagemdeconfirmacao,"ACKpacket");
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-
+		printf("T2\n\n");
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
+			printf("T3\n\n");
 			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 			n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 			printf("Número do pacote: %d Ack recebido: %s\n",counter,bufACK);
