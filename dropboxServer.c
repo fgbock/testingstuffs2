@@ -244,8 +244,10 @@ void *session_manager(void *args){
   	while(online){
 		if((*current_session).can_receive == 0){
 			//printf("Time to handle a request...\n");
-      		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
-			strncpy(op_code,packet_buffer,6);
+      		//n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
+			strcpy(packet_buffer, current_session->session_buffer);
+		printf("\npacket na session: %s \n", packet_buffer);			
+	strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if(n>0){
 				printf("entrou nessa coisa %s\n",op_code);
@@ -425,6 +427,7 @@ int main(int argc,char *argv[]){
 		if (!received){
 			printf("ERROR: Package reception error.\n\n");
 		}
+		printf("\n%s\n", packet_buffer);
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
