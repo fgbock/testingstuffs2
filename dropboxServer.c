@@ -244,8 +244,19 @@ void *session_manager(void *args){
   	while(online){
 		if((*current_session).can_receive == 0){
 			//printf("Time to handle a request...\n");
-      		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
-			strncpy(op_code,packet_buffer,6);
+      		//n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
+			if ((*s_id) == 1){
+				current_session = &session_info_1;
+				strcpy(packet_buffer, session_info_1.session_buffer);
+				printf("Bado: %s\n",packet_buffer);
+				printf("Buceta de touro: %s\n",session_info_1.session_buffer);
+			}
+			else{
+				current_session = &session_info_2;
+				strcpy(packet_buffer, session_info_2.session_buffer);
+			}
+		//printf("\npacket na session: %s \n", packet_buffer);			
+	strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if(op_code[0] != '\0'){
 				printf("Opcode is %s\n\n",op_code);
@@ -428,6 +439,7 @@ int main(int argc,char *argv[]){
 		if (!received){
 			printf("ERROR: Package reception error.\n\n");
 		}
+		printf("\n%s\n", packet_buffer);
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		if (strcmp(op_code,"logins") == 0){
