@@ -323,7 +323,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 		session_info_1.can_receive = 1;
 		session_info_1.active = 1;
 		s_id = 1;
-		pthread_create(&tid, NULL, session_manager, &s_id);
+		//pthread_create(&tid, NULL, session_manager, &s_id);
 		return 1;
 	}
 	else if (session_info_2.active == 0){
@@ -331,7 +331,7 @@ int login(char packet_buffer[1250], struct sockaddr client, int client_len, SOCK
 		session_info_2.client_address_len = client_len;
 		session_info_2.can_receive = 1;
 		session_info_2.active = 1;
-		pthread_create(&tid, NULL, session_manager, &s_id);
+		//pthread_create(&tid, NULL, session_manager, &s_id);
 		return 1;
 	}
 	else{
@@ -387,6 +387,7 @@ int main(int argc,char *argv[]){
 	char reply_buffer[1250];
 	char ack_buffer[20];
 	char op_code[7];
+	char * argument;
 	meme = 1;
 	// Initializing client list (temporary measure - until we get a user list file)
 	/*
@@ -468,19 +469,31 @@ int main(int argc,char *argv[]){
 				printf("ERROR: Login unsuccesful...\n");
 			}
 		}
-		else{
-			//printf("Redirecting packet to session manager...");
-			if (redirect_package(packet_buffer, client, client_len)){
-				//seq_num = get_sequence_num(packet_buffer);
-				strncpy(ack_buffer,"NOTACK",6);
-				for(i = 0; i < 4; i++){
-					ack_buffer[6+i] = packet_buffer[6+i];
-				}
-				ack_buffer[10] = '\0';
-				sendto(s_socket,ack_buffer,sizeof(ack_buffer),0,(struct sockaddr *)&client, client_len);
-				printf("ERROR: Packet delivery unsuccesful...\n");
-			}
+		if (!strcmp(op_code,"downlo")){
+        	argument = getArgument(packet_buffer);
+        	send_file(argument,s_socket,client_info.userid,1);
 		}
+		else if (!strcmp(op_code,"upload")){
+        	argument = getArgument(packet_buffer);
+			sendto(s_socket,"ACKupload0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+        	receive_file(argument,s_socket,client_info.userid);
+		}
+      	else if (!strcmp(op_code,"delete")){
+        	argument = getArgument(packet_buffer);
+        	if (delete_file(argument,s_socket,client_info.userid)){
+        		sendto(s_socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&client, sizeof(client));
+        	}
+		}
+      	else if (!strcmp(op_code,"list_f")){
+       		argument = getArgument(packet_buffer);
+        	list_files(s_socket,client);
+		}
+		else if (strcmp(op_code,"closes")){
+			//printf("entrou no close\n");
+			session_info_1.active = 0;
+			sendto(s_socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+		}
+		strcpy(op_code,"\0");
 		// clear packet and auxiliaries
 		//printf("\n\nBananion\n\n");
 		memset(packet_buffer,0,1250);
