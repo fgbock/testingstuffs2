@@ -26,7 +26,7 @@ char* receive_string_from(int socket);
 
 int send_string_to(int socket, char* str);
 
-int receive_file_from(int socket, char* file_name);
+int receive_file_from(int socket, char* file_name, struct sockaddr sender);
 
 int send_file_to(int socket, char* file_name, struct sockaddr destination);
 

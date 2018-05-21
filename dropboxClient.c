@@ -57,7 +57,7 @@ int login_server(char *host,int port){
 
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 13, 0, (struct sockaddr *) &from, &length);
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 		bufferack[13] = '\0'; //wtf
 		if (strcmp(ackesperado,bufferack)==0){
 			recebeuack = TRUE;
@@ -87,13 +87,13 @@ void send_file(char *file){
 
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
+		printf("Ack recebido: %s\n",bufferack);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
-	destiny = (struct sockaddr*) &serv_addr;
-	recebeuack = send_file_to(socket_local, file,*destiny);
+	recebeuack = send_file_to(socket_local, file, *((struct sockaddr*) &serv_addr));
 
 }
 
@@ -115,13 +115,13 @@ void get_file(char *file){
 
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
 
-	recebeuack = receive_file_from(socket_local, file);
+	recebeuack = receive_file_from(socket_local, file,  *((struct sockaddr*) &serv_addr));
 
 }
 
@@ -149,7 +149,7 @@ void delete_file(char *file){
 		length = sizeof(struct sockaddr_in);
 		while(!recebeuack){
 			n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+			n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 			if (!strcmp(ackesperado,bufferack)){
 				recebeuack = TRUE;
 			}
@@ -169,8 +169,6 @@ void sync_client(){
 	char path[256];
 	strcpy(path, "~/sync_dir_");
 	strcat(path, userID);
-
-
 	int length, i = 0;
 	int fd;
 	int wd;
@@ -243,14 +241,11 @@ void close_session(){
 
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
-		printf("recebeu errado %d\n",n);
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
-			printf("recebeu certo %d\n",n);
 		}
 	}
-
 }
 //=======================================================
 void list_server(){
@@ -270,7 +265,7 @@ void list_server(){
 
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, strlen(bufferack), 0, (struct sockaddr *) &from, &length);
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 		if (!strncmp(ackesperado,bufferack,13)){
 			recebeuack = TRUE;
 		}

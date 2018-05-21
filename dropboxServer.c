@@ -63,7 +63,7 @@ void sync_server(int socket,  char*userID){
 		strcat(path, file); //arquivo será salvo no server
 
 
-		receive_file_from(socket, path); //cliente manda o arquivo
+		receive_file_from(socket, path,session_info_1.client_address); //cliente manda o arquivo
 
 		free(file);
 		free(path);
@@ -101,7 +101,7 @@ void receive_file(char *file, int socket, char*userID){
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
 
-	receive_file_from(socket, path);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
+	receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	free(path);
 }
 
@@ -132,7 +132,6 @@ void list_files(SOCKET socket, struct sockaddr thing){
   else
     perror ("Couldn't open the directory");
 }
-
 
 int min(int right, int left){
 	if(right > left){
@@ -178,6 +177,7 @@ int socket_cmp(struct session *left, struct session *right){
     return rv;
 }
 */
+
 int redirect_package(char packet_buffer[1250], struct sockaddr client, int client_len){
 	int i;
 	/*
@@ -185,7 +185,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	new_session.client_address = client;
 	new_session.client_address_len = client_len;
 	*/
-	printf("Client sa_data : %s\n",client.sa_data);
+	//printf("Client sa_data : %s\n",client.sa_data);
 
 	//if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
 	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
@@ -199,7 +199,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 		strcpy(session_info_2.session_buffer,packet_buffer);
 		return 0;
 	}
-	printf("teste redirect\n\n");
+	//printf("teste redirect\n\n");
 	return 0;
 	/*
 	for(i = 0; i < 20; i++){
@@ -217,13 +217,14 @@ void *session_manager(void *args){
 	char op_code[7];
 	int seq_num, online = 1, c_id, aux;
 	int *s_id = (int *) args;
-  	char * argument;
-  	char packet_buffer[100];
-  	int sockfd, n;
+	char * argument;
+	char packet_buffer[100];
+	int sockfd, n;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
 	struct session* current_session;
+	int i;
 	if ((*s_id) == 1){
 		current_session = &session_info_1;
 	}
@@ -233,6 +234,11 @@ void *session_manager(void *args){
 	struct sockaddr client_addr = current_session->client_address;
 	length = current_session->client_address_len;
 
+	printf("coisa por session manager \n");
+	for(i =0;i<14;i++){
+		printf("%d",session_info_1.client_address.sa_data[i]);
+	}
+	printf("\n\n");
 	//struct sockaddr* client_addr = &(session_list[s_id].client_address);
 	SOCKET socket = client_info.socket;
   	while(online){
@@ -241,12 +247,16 @@ void *session_manager(void *args){
       		n = recvfrom(sockfd, packet_buffer, strlen(packet_buffer), 0, (struct sockaddr *) &from, &length);
 			strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
+			if(n>0){
+				printf("entrou nessa coisa %s\n",op_code);
+			}
 			if (!strcmp(op_code,"downlo")){
         		argument = getArgument(packet_buffer);
         		send_file(argument,socket,client_info.userid,*s_id);
 			}
 			else if (!strcmp(op_code,"upload")){
         		argument = getArgument(packet_buffer);
+						sendto(socket,"ACKupload0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&session_info_1.client_address, sizeof(session_info_1.client_address));
         		receive_file(argument,socket,client_info.userid);
 			}
       		else if (!strcmp(op_code,"delete")){
@@ -259,16 +269,18 @@ void *session_manager(void *args){
        			argument = getArgument(packet_buffer);
         		list_files(socket,client_addr);
 			}
-			else if (strcmp(op_code,"closes")){
-				(*current_session).active = 0;
-				sendto(socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client_addr, sizeof(client_addr));
-				/*
-				session_active[s_id] = 0;
-				c_id = session_list[s_id].client_id;
-				client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
-				sendto(*socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client_addr, sizeof(client_addr));
-				*/
+					else if (strcmp(op_code,"closes")){
+						//printf("entrou no close\n");
+						(*current_session).active = 0;
+						sendto(socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&session_info_1.client_address, sizeof(session_info_1.client_address));
+						/*
+						session_active[s_id] = 0;
+						c_id = session_list[s_id].client_id;
+						client_list[c_id].logged_in = client_list[c_id].logged_in + 1;
+						sendto(*socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client_addr, sizeof(client_addr));
+						*/
 			}
+			strcpy(op_code,"\0");
 		}
 	}
 }
@@ -419,7 +431,11 @@ int main(int argc,char *argv[]){
 		/*	for (i = 0; i < 14; i++){
 				printf("\nChar %d de client original: %d\n",i, (int)client.sa_data[i]);
 			}*/
-
+		printf("coisa a????sdfsdr??? \n");
+		for(i =0;i<14;i++){
+			printf("%d",client.sa_data[i]);
+		}
+		printf("\n");
 		printf("Client sa_data : %s\n",client.sa_data);
 			if (login(packet_buffer, client, client_len, s_socket)){
 				strcpy(ack_buffer,"ACKlogins0000");
@@ -441,7 +457,7 @@ int main(int argc,char *argv[]){
 			}
 		}
 		else{
-			printf("Redirecting packet to session manager...");
+			//printf("Redirecting packet to session manager...");
 			if (redirect_package(packet_buffer, client, client_len)){
 				//seq_num = get_sequence_num(packet_buffer);
 				strncpy(ack_buffer,"NOTACK",6);

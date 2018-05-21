@@ -47,18 +47,18 @@ int create_home_dir(char *userID){
 	strcat(path, userID);    //forma o path utilizando o user id
 
 	int ret=0;
-	
+
 	char *syscmd = malloc((((strlen(userID)+15)*2)+50)*sizeof(char));
 
 	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
-	strcat(syscmd, path);	 
+	strcat(syscmd, path);
 	strcat(syscmd, " ];then\n mkdir ");
 	strcat(syscmd, path);
 	strcat(syscmd, "\nfi");
 
 	ret = system(syscmd);  //chama o comando
 	free(syscmd);
-	
+
 	free(path);
 	return ret;
 }
@@ -71,16 +71,16 @@ int create_home_dir_server(char *userID){
 	strcat(path, userID);
 
 	int ret=0;
-	
+
 	char *syscmd = malloc((((strlen(userID)+23)*2)+50)*sizeof(char));
 
 	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
-	strcat(syscmd, path);	 
+	strcat(syscmd, path);
 	strcat(syscmd, " ];then\n mkdir ");
 	strcat(syscmd, path);
 	strcat(syscmd, "\nfi");
 	ret = system(syscmd);
-	
+
 	free(syscmd);
 
 	free(path);
@@ -113,12 +113,12 @@ int create_server_root(){
 	char *syscmd = malloc(65*sizeof(char));
 
 	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
-	strcat(syscmd, path);	 
+	strcat(syscmd, path);
 	strcat(syscmd, " ];then\n mkdir ");
 	strcat(syscmd, path);
 	strcat(syscmd, "\nfi");
 	ret = system(syscmd);
-	
+
 	free(path);
 	return ret;
 }
@@ -130,16 +130,16 @@ int create_server_userdir(char *userID){
 	strcat(path, userID);
 
 	int ret=0;
-	
+
 	char *syscmd = malloc((((strlen(userID)+16)*2)+50)*sizeof(char));
 
 	strcpy(syscmd, "if [ ! -d ");   //monta o comando em bash para cria o dir caso ele não excista
-	strcat(syscmd, path);	 
+	strcat(syscmd, path);
 	strcat(syscmd, " ];then\n mkdir ");
 	strcat(syscmd, path);
 	strcat(syscmd, "\nfi");
 	ret = system(syscmd);
-	
+
 	free(path);
 	return ret;
 }
@@ -241,10 +241,9 @@ int send_string_to(int socket, char* str){
 
 }
 
-int receive_file_from(int socket, char* file_name){
+int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	int n, file;
 	socklen_t clilen;
-	struct sockaddr_in cli_addr;
 	char buf[CHUNK];
 	clilen = sizeof(struct sockaddr_in);
 	int recebeutudo = FALSE;
@@ -271,7 +270,7 @@ int receive_file_from(int socket, char* file_name){
 		sprintf(bufferitoa,"%d",(counter-1));
 		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 
-		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &cli_addr, &clilen);
+		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
 
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
@@ -293,7 +292,7 @@ int receive_file_from(int socket, char* file_name){
 	close(file);
 
 
-	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &sender, sizeof(struct sockaddr));
 	if (n  < 0)
 		return -1;
 
@@ -325,6 +324,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
 			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 			n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
+			printf("Número do pacote: %d Ack recebido: %s\n",counter,bufACK);
 			sleep(1);
 		}
 		counter++;
