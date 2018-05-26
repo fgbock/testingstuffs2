@@ -272,10 +272,13 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 
 		memset(buf,0,1250);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
-		printf("Packet is: %s\n",buf);
+		printf("Packet is: \n%s\n\n",buf);
+		write(file,buf+7,CHUNK);
 
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
+			printf("Packet is: %s\n",buf);
 			recebeutudo = TRUE;
+			write(file,buf+7,CHUNK);
 			sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		}
 		else
@@ -336,7 +339,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 
 	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
 	sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-
+	printf("Sent everything...\n");
 
 
 

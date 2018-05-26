@@ -451,12 +451,12 @@ int main(int argc,char *argv[]){
 		/*	for (i = 0; i < 14; i++){
 				printf("\nChar %d de client original: %d\n",i, (int)client.sa_data[i]);
 			}*/
-		printf("coisa a????sdfsdr??? \n");
-		for(i =0;i<14;i++){
-			printf("%d",client.sa_data[i]);
-		}
-		printf("\n");
-		printf("Client sa_data : %s\n",client.sa_data);
+			printf("coisa a????sdfsdr??? \n");
+			for(i =0;i<14;i++){
+				printf("%d",client.sa_data[i]);
+			}
+			printf("\n");
+			printf("Client sa_data : %s\n",client.sa_data);
 			if (login(packet_buffer, client, client_len, s_socket)){
 				strcpy(ack_buffer,"ACKlogins0000");
 				/*for(i = 0; i < 4; i++){
@@ -497,9 +497,13 @@ int main(int argc,char *argv[]){
         	list_files(s_socket,client);
 		}
 		else if (strcmp(op_code,"closes")){
+			printf("Error\n\n");
 			//printf("entrou no close\n");
 			session_info_1.active = 0;
 			sendto(s_socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+		}
+		else{
+			printf("Success");
 		}
 		strcpy(op_code,"\0");
 		// clear packet and auxiliaries
