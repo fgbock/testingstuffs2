@@ -272,6 +272,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 
 		memset(buf,0,1250);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
+		printf("Packet is: %s\n",buf);
 
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
@@ -302,7 +303,6 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
 	counter = 0;
 	unsigned int length = sizeof(struct sockaddr_in);
-
 	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
 
 	file = open(file_name, O_RDONLY);;
@@ -325,7 +325,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 		printf("T2\n\n");
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
 			printf("T3\n\n");
-			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			sendto(socket, bufTrue, n, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
 			printf("enviamos o seguinte: %s \n\n",bufTrue);
 			n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 			printf("Número do pacote: %d Ack recebido: %s\n",counter,bufACK);
@@ -335,7 +335,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	}
 
 	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
-	sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
 
 
 

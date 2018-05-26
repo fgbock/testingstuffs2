@@ -100,7 +100,7 @@ void receive_file(char *file, int socket, char*userID){
 	strcat(path, file);
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
-
+	printf("... %s\n",path);
 	receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	free(path);
 }
@@ -446,6 +446,7 @@ int main(int argc,char *argv[]){
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		strncpy(userid,&(packet_buffer[10]),20);
+		printf("\nOPCODE IS %s\n\n",op_code);
 		if (strcmp(op_code,"logins") == 0){
 		/*	for (i = 0; i < 14; i++){
 				printf("\nChar %d de client original: %d\n",i, (int)client.sa_data[i]);
@@ -481,7 +482,8 @@ int main(int argc,char *argv[]){
 		}
 		else if (!strcmp(op_code,"upload")){
         	argument = getArgument(packet_buffer);
-					sendto(s_socket,"ACKupload0000",sizeof("ACKupload0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+			sendto(s_socket,"ACKupload0000",sizeof("ACKupload0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
+			printf("Receiving File...\n");
         	receive_file(argument,s_socket,userid);
 		}
       	else if (!strcmp(op_code,"delete")){
