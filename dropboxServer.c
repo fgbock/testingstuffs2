@@ -446,17 +446,7 @@ int main(int argc,char *argv[]){
 		strncpy(op_code,packet_buffer,6);
 		op_code[6] = '\0';
 		strncpy(userid,&(packet_buffer[10]),20);
-		printf("\nOPCODE IS %s\n\n",op_code);
 		if (strcmp(op_code,"logins") == 0){
-		/*	for (i = 0; i < 14; i++){
-				printf("\nChar %d de client original: %d\n",i, (int)client.sa_data[i]);
-			}*/
-			printf("coisa a????sdfsdr??? \n");
-			for(i =0;i<14;i++){
-				printf("%d",client.sa_data[i]);
-			}
-			printf("\n");
-			printf("Client sa_data : %s\n",client.sa_data);
 			if (login(packet_buffer, client, client_len, s_socket)){
 				strcpy(ack_buffer,"ACKlogins0000");
 				/*for(i = 0; i < 4; i++){
@@ -476,27 +466,26 @@ int main(int argc,char *argv[]){
 				printf("ERROR: Login unsuccesful...\n");
 			}
 		}
-		if (!strcmp(op_code,"downlo")){
+		if (strcmp(op_code,"downlo") == 0){
         	argument = getArgument(packet_buffer);
         	send_file(argument,s_socket,userid,1);
 		}
-		else if (!strcmp(op_code,"upload")){
+		else if (strcmp(op_code,"upload") == 0){
         	argument = getArgument(packet_buffer);
 			sendto(s_socket,"ACKupload0000",sizeof("ACKupload0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
-			printf("Receiving File...\n");
         	receive_file(argument,s_socket,userid);
 		}
-      	else if (!strcmp(op_code,"delete")){
+      	else if (strcmp(op_code,"delete") == 0){
         	argument = getArgument(packet_buffer);
         	if (delete_file(argument,s_socket,userid)){
         		sendto(s_socket,"ACKdelete0000",sizeof("ACKdelete0000"),0,(struct sockaddr *)&client, sizeof(client));
         	}
 		}
-      	else if (!strcmp(op_code,"list_f")){
+      	else if (strcmp(op_code,"list_f") == 0){
        		argument = getArgument(packet_buffer);
         	list_files(s_socket,client);
 		}
-		else if (strcmp(op_code,"closes")){
+		else if (strcmp(op_code,"closes") == 0){
 			printf("Error\n\n");
 			//printf("entrou no close\n");
 			session_info_1.active = 0;
