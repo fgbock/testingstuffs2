@@ -21,6 +21,7 @@
 #include <time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <pwd.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -38,6 +39,30 @@ struct client{
 	struct file_info fi[MAXFILES];
 	int logged_in;
 };
+
+void removeBlank(char * filename){
+	char aux[200]; int i=0; int j=0;
+
+	const char *homedir;
+
+	if ((homedir = getenv("HOME")) == NULL) {
+	    homedir = getpwuid(getuid())->pw_dir;
+	}
+
+	strcpy(aux,homedir);
+	while(aux[j]!='\0')
+		j++;
+
+	while((filename[i]!='\0')&&(filename[i]!='\n')){
+		if ((filename[i]!=' ')&&(filename[i]!='~')){
+			aux[j] = filename[i];
+			j++;
+		}
+		i++;
+	}
+	aux[j]= '\0';
+	strcpy(filename,aux);
+}
 
 int create_home_dir(char *userID){
 	//cria diretório com nome do user no HOME do user, chamado pelo cliente
@@ -255,10 +280,17 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	struct sockaddr_in serv_addr, from;
 	char bufferitoa[100];
 
+	removeBlank(file_name);
+
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
+	if (file == -1){
+		printf("Houve erro\n");
+		printf("path: %s ---\n\n\n\n\n",file_name);
+	}
 
 	while(!recebeutudo){
 		strcpy(mensagemesperada,"");
+		strcpy(bufferitoa,"");
 		strcat(mensagemesperada,"packet");
 		sprintf(bufferitoa,"%d",counter);
 		strcat(mensagemesperada,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
@@ -267,33 +299,24 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		strcpy(mensagemdeconfirmacaoanterior,"");
 		strcat(mensagemdeconfirmacaoanterior,"ACKpacket");
+		strcpy(bufferitoa,"");
 		sprintf(bufferitoa,"%d",(counter-1));
 		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-
 		memset(buf,0,1250);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
-		printf("Packet is: \n%s\n",buf);
-		write(file,buf+7,CHUNK);
+		write(file,buf+10,CHUNK);
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
-			printf("Worked?\n");
-			printf("Packet is: %s\n",buf);
 			recebeutudo = TRUE;
-			write(file,buf+7,CHUNK);
-			sendto(socket, "xxxCABOOARQUIVOxxx", n, 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
+			sendto(socket, "xxxCABOOARQUIVOxxx", sizeof("xxxCABOOARQUIVOxxx"), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
+			printf("Recemos a mensagem de fim de arquivo!\n");
 		}
 		else
-			printf("Msg de ack eh: %s\n\n", mensagemdeconfirmacao);
+			printf("Msg de ack eh: %s\n", mensagemdeconfirmacao);
 			sendto(socket, mensagemdeconfirmacao, sizeof(mensagemdeconfirmacao), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
 		counter++;
 	}
-
 	close(file);
-
-
-	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &sender, sizeof(struct sockaddr));
-	if (n  < 0)
-		return -1;
-	printf("We got here\n");
+	printf("Chegou aqui \n");
 	return 0;
 
 }
@@ -315,6 +338,8 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	printf("filename is .%s.\n",file_name);
 	n=read(file, buf, CHUNK);
 	while(n>0){
+		strcpy(bufTrue,"");
+		strcpy(bufferitoa,"");
 		strcat(bufTrue,"packet");
 		sprintf(bufferitoa,"%d",counter);
 		strcat(bufTrue,bufferitoa); //pacote é packet<numerodopacote><DATACHUNK>
@@ -323,21 +348,18 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 		strcat(mensagemdeconfirmacao,"ACKpacket");
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
-			sendto(socket, bufTrue, CHUNK, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-			printf("enviamos o seguinte: %s \n\n",bufTrue);
+			sendto(socket, bufTrue, 1250, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
+			printf("enviamos o pacote: %d \n",counter);
 			n = recvfrom(socket, bufACK, 20, 0, (struct sockaddr *) &from, &length);
-			printf("Número do pacote: %d Ack recebido: %s\n",counter,bufACK);
+			printf("Recebemos Ack: %s\n",bufACK);
 			usleep(250000);
 		}
 		n=read(file, buf, CHUNK);
 		counter++;
 	}
-
 	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
 	sendto(socket, "xxxCABOOARQUIVOxxx", CHUNK, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-	printf("Sent everything...\n");
-
-
+	printf("Arquivo foi enviado...\n");
 
 	n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 	if (n < 0)

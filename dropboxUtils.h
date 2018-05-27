@@ -10,6 +10,8 @@
 #define CHUNK 1240
 #define OPCODE 10
 
+void removeBlank(char * filename);
+
 int create_home_dir(char *userID);
 
 int create_home_dir_server(char *userID);

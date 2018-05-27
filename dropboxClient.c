@@ -34,6 +34,23 @@ struct sockaddr_in serv_addr;
 struct hostent *server;
 
 //=======================================================
+
+void pickFileNameFromPath(char *path,char *filename){
+	char aux[100]; char aux2[100];
+	int i=0;int j=0;
+	int lastdash=0;
+	strcpy(aux,path);
+
+	while(aux[i]!='\0'){
+		if(aux[i]=='/')
+			lastdash = i;
+		i++;
+	}
+	strcpy(filename,&aux[lastdash]);
+
+}
+
+
 int login_server(char *host,int port){
 	int n;
 	unsigned int length;
@@ -78,12 +95,15 @@ void send_file(char *file){
 	char bufferack[100];
 	int recebeuack = FALSE;
 	struct sockaddr* destiny;
+	char filename[100];
+
+	pickFileNameFromPath(file,filename);
 
 	strcpy(ackesperado,"ACKupload0000");
 	strcpy(buffer,"upload0000");
 	strcat(buffer,userID);
 	strcat(buffer," ");
-	strcat(buffer,file);
+	strcat(buffer,filename);
 
 	length = sizeof(struct sockaddr_in);
 
