@@ -293,7 +293,6 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &sender, sizeof(struct sockaddr));
 	if (n  < 0)
 		return -1;
-	printf("Exiting Receive state\n");
 
 	return 0;
 

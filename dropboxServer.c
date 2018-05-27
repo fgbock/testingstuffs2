@@ -487,20 +487,13 @@ int main(int argc,char *argv[]){
 		}
 		else if (strcmp(op_code,"closes") == 0){
 			printf("Error\n\n");
-			//printf("entrou no close\n");
 			session_info_1.active = 0;
 			sendto(s_socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
 		}
-		else{
-			printf("Success");
-		}
+		printf("Success");
 		strcpy(op_code,"\0");
-		// clear packet and auxiliaries
-		//printf("\n\nBananion\n\n");
 		memset(packet_buffer,0,1250);
 		memset(op_code,0,7);
-		//printf("\n\nMegaBananion\n\n");
-		//T
 	}
 	return 0;
 }
