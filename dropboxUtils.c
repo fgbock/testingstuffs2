@@ -302,9 +302,9 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		strcpy(bufferitoa,"");
 		sprintf(bufferitoa,"%d",(counter-1));
 		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-		memset(buf,0,1250);
+		memset(buf,0,1240);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
-		write(file,buf+10,CHUNK);
+		write(file,buf+10,CHUNK-10);
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
 			sendto(socket, "xxxCABOOARQUIVOxxx", sizeof("xxxCABOOARQUIVOxxx"), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
@@ -337,7 +337,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	file = open(file_name, O_RDONLY);;
 	char bufferitoa[100];
 
-	printf("filename is .%s.\n",file_name);
+	printf("filename is %s\n",file_name);
 	n=read(file, buf, CHUNK);
 	while(n>0){
 		strcpy(bufTrue,"");
