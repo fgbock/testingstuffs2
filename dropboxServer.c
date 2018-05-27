@@ -102,7 +102,9 @@ void receive_file(char *file, int socket, char*userID){
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
 	printf("... %s\n",path);
 	receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
+	printf("\n\nGod\n");
 	free(path);
+	printf("\nDevil\n");
 }
 
 // Auxiliary Functions
@@ -490,7 +492,7 @@ int main(int argc,char *argv[]){
 			session_info_1.active = 0;
 			sendto(s_socket,"ACKcloses0000",sizeof("ACKcloses0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
 		}
-		printf("Success");
+		printf("Success\n");
 		strcpy(op_code,"\0");
 		memset(packet_buffer,0,1250);
 		memset(op_code,0,7);

@@ -293,7 +293,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	n = sendto(socket, "ACK", 3, 0,(struct sockaddr *) &sender, sizeof(struct sockaddr));
 	if (n  < 0)
 		return -1;
-
+	printf("We got here\n");
 	return 0;
 
 }
@@ -304,7 +304,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	char bufTrue[CHUNK+OPCODE];
 	char mensagemdeconfirmacao[100];
 	struct sockaddr_in serv_addr, from;
-	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
+	char bufACK[100]; //para receber o ack
 	counter = 0;
 	unsigned int length = sizeof(struct sockaddr_in);
 	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
@@ -343,7 +343,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	if (n < 0)
 		return -1;
 
-	free(bufACK);
+	//free(bufACK);
 
 	close(file);
 
