@@ -354,7 +354,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 			printf("enviamos o pacote: %d \n",counter);
 			n = recvfrom(socket, bufACK, 20, 0, (struct sockaddr *) &from, &length);
 			printf("Recebemos Ack: %s\n",bufACK);
-			usleep(250000);
+			//usleep(250000);
 		}
 		n=read(file, buf, CHUNK);
 		counter++;
