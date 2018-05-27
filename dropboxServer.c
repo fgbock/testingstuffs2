@@ -91,6 +91,7 @@ void send_file(char *file, int socket, char *userID, int session_id){
 }
 
 void receive_file(char *file, int socket, char*userID){
+	int i;
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
 	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
 
@@ -101,7 +102,7 @@ void receive_file(char *file, int socket, char*userID){
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
 	printf("... %s\n",path);
-	receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
+	i = receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	printf("\n\nGod\n");
 	free(path);
 	printf("\nDevil\n");

@@ -315,7 +315,9 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 			sendto(socket, mensagemdeconfirmacao, sizeof(mensagemdeconfirmacao), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
 		counter++;
 	}
-	close(file);
+	if (close(file) == -1) {
+			 printf("erro no fechamento de arquivo\n");
+	 }
 	printf("Chegou aqui \n");
 	return 0;
 
