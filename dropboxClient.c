@@ -15,6 +15,8 @@
 #include <netdb.h>
 #include <dirent.h>
 #include <sys/inotify.h>
+#include <netdb.h>
+#include <pwd.h>
 
 #define SOCKET int
 #define TRUE 1
@@ -190,8 +192,14 @@ void delete_file(char *file){
 
 void sync_client(){
 	char path[256];
-	strcpy(path, "~/sync_dir_");
+	const char *homedir;
+	if ((homedir = getenv("HOME")) == NULL) {
+			homedir = getpwuid(getuid())->pw_dir;
+	}
+	strcpy(path,homedir);
+	strcat(path, "/sync_dir_");
 	strcat(path, userID);
+	printf("path >> %s\n",path);
 	int length, i = 0;
 	int fd;
 	int wd;
@@ -209,32 +217,32 @@ void sync_client(){
 		if ( event->len ) {
 			if ( event->mask & IN_CREATE ) {
 				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was created.\n", event->name );
+					printf( "The directory %s was created.\n", event->name );
 					strcat(path,event->name);
 					send_file(path);
 				}
 				else {
-					//printf( "The file %s was created.\n", event->name );
+					printf( "The file %s was created.\n", event->name );
 				}
 			}
 			else if ( event->mask & IN_DELETE ) {
 				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was deleted.\n", event->name );
+					printf( "The directory %s was deleted.\n", event->name );
 				}
 				else {
-					//printf( "The file %s was deleted.\n", event->name );
+					printf( "The file %s was deleted.\n", event->name );
 					strcat(path,event->name);
-					delete_file(path);
+					//delete_file(path);
 				}
 			}
 			else if ( event->mask & IN_MODIFY ) {
 				if ( event->mask & IN_ISDIR ) {
-					//printf( "The directory %s was modified.\n", event->name );
+					printf( "The directory %s was modified.\n", event->name );
 				}
 				else {
-					//printf( "The file %s was modified.\n", event->name );
+					printf( "The file %s was modified.\n", event->name );
 					strcat(path,event->name);
-					send_file(path);
+					//send_file(path);
 				}
 			}
 		}
