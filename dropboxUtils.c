@@ -279,6 +279,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	char mensagemesperada[100];
 	struct sockaddr_in serv_addr, from;
 	char bufferitoa[100];
+	char bufferitoAnt[100];
 	int k =0;
 
 	removeBlank(file_name);
@@ -302,14 +303,14 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		strcpy(mensagemdeconfirmacaoanterior,"");
 		strcat(mensagemdeconfirmacaoanterior,"ACKpacket");
-		strcpy(bufferitoa,"");
-		sprintf(bufferitoa,"%d",(counter-1));
-		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		//strcpy(bufferitoa,"");
+		sprintf(bufferitoAnt,"%d",(counter-1));
+		strcat(mensagemdeconfirmacaoanterior,bufferitoAnt); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		memset(buf,0,CHUNK+10);
 		n = recvfrom(socket, buf, CHUNK+50, 0, (struct sockaddr *) &sender, &clilen);
 
 
-		printf("\nCounter: %d\tBufITOA: %s\tsize: %d", counter,bufferitoa, strlen(bufferitoa));
+		//printf("\nCounter: %d\tBufITOA: %s\tsize: %d", counter,bufferitoa, strlen(bufferitoa));
 
 		//if(counter==27 || counter ==28)printf("buf: %s\n\n\n",buf);
 
@@ -317,7 +318,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 
 		k=0;
 		int offset = (counter==0?1:strlen(bufferitoa))+strlen("packet"); //tam do header do packet
-		printf("\noffset: %d", offset);
+		//printf("\noffset: %d", offset);
 		//printf("sizeitoa: %d\tsize packet: %d\n",(counter%10)+1,strlen("packet"));
 		while ((k<CHUNK)&&(strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))!=0) && (endof==FALSE) && (buf[offset + k]!='\0')){
 			//write(file,buf+10+k,1);
@@ -327,7 +328,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		}
 		printf("\nk: %d", k);
 		if (strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))==0){
-			printf("Achou end of file!\n");
+			//printf("Achou end of file!\n");
 			printf("%s\n",buf);
 			endof = TRUE;
 		}
@@ -337,7 +338,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
 			sendto(socket, "xxxCABOOARQUIVOxxx", sizeof("xxxCABOOARQUIVOxxx"), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
-			printf("Recemos a mensagem de fim de arquivo!\n");
+			//printf("Recemos a mensagem de fim de arquivo!\n");
 		}
 		else
 			//printf("Msg de ack eh: %s\n", mensagemdeconfirmacao);
