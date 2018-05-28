@@ -279,6 +279,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	char mensagemesperada[100];
 	struct sockaddr_in serv_addr, from;
 	char bufferitoa[100];
+	int k =0;
 
 	removeBlank(file_name);
 
@@ -304,7 +305,18 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		strcat(mensagemdeconfirmacaoanterior,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
 		memset(buf,0,1240);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
-		write(file,buf+10,CHUNK-10);
+
+		k=0;
+		while ((k<CHUNK)&&(strncmp(&buf[k],"endoffile",sizeof("endoffile"))!=0)){
+			write(file,buf+10+k,1);
+			printf("%s\n",buf+10+k);
+			k++;
+		}
+		if (strncmp(&buf[k],"endoffile",sizeof("endoffile"))==0){
+			printf("Achou end of file!\n");
+			printf("%s\n",buf);
+		}
+
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
 			sendto(socket, "xxxCABOOARQUIVOxxx", sizeof("xxxCABOOARQUIVOxxx"), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
@@ -340,15 +352,20 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	printf("filename is %s\n",file_name);
 	n=read(file, buf, CHUNK);
 	while(n>0){
+
 		strcpy(bufTrue,"");
 		strcpy(bufferitoa,"");
 		strcat(bufTrue,"packet");
 		sprintf(bufferitoa,"%d",counter);
 		strcat(bufTrue,bufferitoa); //pacote é packet<numerodopacote><DATACHUNK>
-		strcat(bufTrue,buf);
+		strncat(bufTrue,buf,n);
 		strcpy(mensagemdeconfirmacao,"");
 		strcat(mensagemdeconfirmacao,"ACKpacket");
 		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
+		if (n<1240){
+			strcat(bufTrue,"endoffile");
+		}
+		printf("%s\n\n\n",bufTrue);
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
 			sendto(socket, bufTrue, 1250, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
 			printf("enviamos o pacote: %d \n",counter);
@@ -357,6 +374,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 			//usleep(250000);
 		}
 		n=read(file, buf, CHUNK);
+		printf("tamanho que resta: %d\n",n);
 		counter++;
 	}
 	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
