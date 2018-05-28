@@ -93,7 +93,7 @@ void send_file(char *file, int socket, char *userID, int session_id){
 void receive_file(char *file, int socket, char*userID){
 	int i;
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
-	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+	char path[300];
 
 	strcpy(path, "~/dropboxserver/");
 	strcat(path, userID);
@@ -104,7 +104,7 @@ void receive_file(char *file, int socket, char*userID){
 	printf("... %s\n",path);
 	i = receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
 	printf("\n\nGod\n");
-	free(path);
+	//free(path);
 	printf("\nDevil\n");
 }
 

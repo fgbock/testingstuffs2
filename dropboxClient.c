@@ -200,8 +200,8 @@ void sync_client(){
 	strcpy(path,homedir);
 	strcat(path, "/sync_dir_");
 	strcat(path, userID);
-	
-	
+
+
 	printf("path >> %s\n",path);
 	int length, i = 0;
 	int fd;
@@ -216,15 +216,15 @@ void sync_client(){
 	while((file = readdir(dir)) != NULL){
 		if(file->d_type==DT_REG){
 			printf("\nread: %s", file->d_name);
-			
+
 			strcpy(sendpath, path);
-			strcat(sendpath, file->d_name);	
-			printf("\nSendpAth: %s\n", sendpath);			
+			strcat(sendpath, file->d_name);
+			printf("\nSendpAth: %s\n", sendpath);
 			send_file(sendpath);
 
 		}
-	} 
-	
+	}
+
 	/*argument = getArgument(command);
 	send_file(argument);*/
 
@@ -233,14 +233,14 @@ void sync_client(){
 	/*fd = inotify_init();
 	wd = inotify_add_watch(fd,path,IN_MODIFY | IN_CREATE | IN_DELETE );
 	length = read( fd, buffer, BUF_LEN );
-	printf("\nLength: %d\n", length);	
+	printf("\nLength: %d\n", length);
 
 
 	if ( length < 0 ) {
 		perror( "read" );
 	}
 
-	 
+
 
 	while ( i < length ) {
 		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
@@ -271,7 +271,7 @@ void sync_client(){
 				}
 				else {
 					printf( "The file %s was modified.\n", event->name );
-					strcat(path, "/");					
+					strcat(path, "/");
 					strcat(path,event->name);
 					send_file(path);
 				}
@@ -477,7 +477,7 @@ int main(int argc,char *argv[]){
 	    int n_threads = 2;
 			double last_time;
 			double actual_time;
-			double time_between_sync = 2.f;
+			double time_between_sync = 1000000.f;
 			last_time=  (double) clock() / CLOCKS_PER_SEC;
 			actual_time = (double) clock() / CLOCKS_PER_SEC;
 			pthread_create(&(tid[0]), NULL, thread_interface,NULL);
