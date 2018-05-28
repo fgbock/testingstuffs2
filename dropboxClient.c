@@ -376,11 +376,13 @@ void *thread_sync(void *vargp){
 		is_syncing = TRUE;
 
 		must_sync = TRUE;
+
+		printf("Sincronizando a pasta local...\n");
 		if (must_sync){
 			sync_client();
 		}
+		printf("Acabou de sincronizar...\n");
 
-    //printf("\nSincronizando a pasta local...");
 
 		is_syncing = FALSE;
     pthread_exit((void *)NULL);
@@ -434,6 +436,7 @@ int main(int argc,char *argv[]){
 	    int n_threads = 2;
 			double last_time;
 			double actual_time;
+			double time_between_sync = 2.f;
 			last_time=  (double) clock() / CLOCKS_PER_SEC;
 			actual_time = (double) clock() / CLOCKS_PER_SEC;
 			pthread_create(&(tid[0]), NULL, thread_interface,NULL);
@@ -441,7 +444,7 @@ int main(int argc,char *argv[]){
 			while(!mustexit){ //exits here when the user digits 'quit' at the interface thread
 				actual_time = (double) clock() / CLOCKS_PER_SEC;
 
-				if ((!is_syncing)&&(actual_time - last_time >= 10.f)){ //throws a sync thread every 10 sec, if there isn't one already
+				if ((!is_syncing)&&(actual_time - last_time >= time_between_sync)){ //throws a sync thread every 10 sec, if there isn't one already
 					last_time = actual_time;
 					pthread_create(&(tid[1]), NULL, thread_sync, NULL);
 				}
