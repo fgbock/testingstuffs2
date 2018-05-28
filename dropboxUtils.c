@@ -289,6 +289,8 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		printf("path: %s ---\n\n\n\n\n",file_name);
 	}
 
+	int endof = FALSE;
+
 	while(!recebeutudo){
 		strcpy(mensagemesperada,"");
 		strcpy(bufferitoa,"");
@@ -306,16 +308,25 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 		memset(buf,0,1240);
 		n = recvfrom(socket, buf, CHUNK, 0, (struct sockaddr *) &sender, &clilen);
 
+		printf("recebemos o pacote: %s \n",buf);
+
 		k=0;
-		while ((k<CHUNK)&&(strncmp(&buf[k],"endoffile",sizeof("endoffile"))!=0)){
-			write(file,buf+10+k,1);
-			printf("%s\n",buf+10+k);
+		int offset = (counter%10)+1/*tamanho do indicador de pacote*/+strlen("packet"); //tam do header do packet
+		//printf("sizeitoa: %d\tsize packet: %d\n",(counter%10)+1,strlen("packet"));
+		while ((k<CHUNK)&&(strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))!=0) && (endof==FALSE)){
+			//write(file,buf+10+k,1);
+			write(file,buf+offset+k,1);
+			printf("%s\n",buf+offset+k);
 			k++;
 		}
-		if (strncmp(&buf[k],"endoffile",sizeof("endoffile"))==0){
+		printf("k: %d", k);
+		if (strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))==0){
 			printf("Achou end of file!\n");
 			printf("%s\n",buf);
+			endof = TRUE;
 		}
+
+		fprintf(stderr, "\nchegou aqui wtf\n");
 
 		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
 			recebeutudo = TRUE;
@@ -351,6 +362,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 
 	printf("filename is %s\n",file_name);
 	n=read(file, buf, CHUNK);
+printf("bufread: .%s. size: %d\n\n\n",buf,n);
 	while(n>0){
 
 		strcpy(bufTrue,"");
@@ -365,10 +377,10 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 		if (n<1240){
 			strcat(bufTrue,"endoffile");
 		}
-		printf("%s\n\n\n",bufTrue);
+		printf("buftrue: %s\n\n\n",bufTrue);
 		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
 			sendto(socket, bufTrue, 1250, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-			printf("enviamos o pacote: %d \n",counter);
+			printf("enviamos o pacote: %s \n",bufTrue);
 			n = recvfrom(socket, bufACK, 20, 0, (struct sockaddr *) &from, &length);
 			printf("Recebemos Ack: %s\n",bufACK);
 			//usleep(250000);
