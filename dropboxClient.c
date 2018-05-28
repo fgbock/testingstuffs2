@@ -191,7 +191,8 @@ void delete_file(char *file){
 }
 
 void sync_client(){
-	char path[256];
+	char path[2256];
+	char sendpath[2256];
 	const char *homedir;
 	if ((homedir = getenv("HOME")) == NULL) {
 			homedir = getpwuid(getuid())->pw_dir;
@@ -199,18 +200,47 @@ void sync_client(){
 	strcpy(path,homedir);
 	strcat(path, "/sync_dir_");
 	strcat(path, userID);
+	
+	
 	printf("path >> %s\n",path);
 	int length, i = 0;
 	int fd;
 	int wd;
 	char buffer[BUF_LEN];
-	fd = inotify_init();
+
+	DIR* dir = opendir(path);
+	strcat(path, "/");
+
+	struct dirent * file;
+
+	while((file = readdir(dir)) != NULL){
+		if(file->d_type==DT_REG){
+			printf("\nread: %s", file->d_name);
+			
+			strcpy(sendpath, path);
+			strcat(sendpath, file->d_name);	
+			printf("\nSendpAth: %s\n", sendpath);			
+			send_file(sendpath);
+
+		}
+	} 
+	
+	/*argument = getArgument(command);
+	send_file(argument);*/
+
+
+
+	/*fd = inotify_init();
 	wd = inotify_add_watch(fd,path,IN_MODIFY | IN_CREATE | IN_DELETE );
 	length = read( fd, buffer, BUF_LEN );
+	printf("\nLength: %d\n", length);	
+
 
 	if ( length < 0 ) {
 		perror( "read" );
 	}
+
+	 
 
 	while ( i < length ) {
 		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
@@ -241,8 +271,9 @@ void sync_client(){
 				}
 				else {
 					printf( "The file %s was modified.\n", event->name );
+					strcat(path, "/");					
 					strcat(path,event->name);
-					//send_file(path);
+					send_file(path);
 				}
 			}
 		}
@@ -250,7 +281,7 @@ void sync_client(){
 	}
 
 	( void ) inotify_rm_watch( fd, wd );
-	( void ) close( fd );
+	( void ) close( fd );*/
 
 
 }
@@ -344,7 +375,9 @@ void treat_command(char command[100]){
 		mustexit = TRUE;
 	}
 	else if (!strncmp("upload",command,6)){
+		printf("\ncommand: %s", command);
 		argument = getArgument(command);
+		printf("\nargument: %s", argument);
 		send_file(argument);
 
 		result = 1;
