@@ -239,6 +239,7 @@ void sync_client(){
 
 			strcpy(sendpath, path);
 			strcat(sendpath, file->d_name);
+			strcat(sendpath, "\n");
 			printf("\nSendpAth: %s\n", sendpath);
 			send_file(sendpath);
 
@@ -497,7 +498,7 @@ int main(int argc,char *argv[]){
 	    int n_threads = 2;
 			double last_time;
 			double actual_time;
-			double time_between_sync = 1000000.f;
+			double time_between_sync = 10.f;
 			last_time=  (double) clock() / CLOCKS_PER_SEC;
 			actual_time = (double) clock() / CLOCKS_PER_SEC;
 			pthread_create(&(tid[0]), NULL, thread_interface,NULL);
