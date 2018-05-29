@@ -283,11 +283,12 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	int k =0;
 
 	removeBlank(file_name);
+	printf("path aqui ficou: %s\n",file_name);
 
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
 	if (file == -1){
 		printf("Houve erro\n");
-		printf("path: %s ---\n\n\n\n\n",file_name);
+		printf("path: ---%s---\n\n\n\n\n",file_name);
 	}
 
 	int endof = FALSE;
@@ -364,12 +365,19 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	unsigned int length = sizeof(struct sockaddr_in);
 	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
 
-	file = open(file_name, O_RDONLY);;
+	removeBlank(file_name);
+	printf("filename is : --%s--\n",file_name);
+
+
+	file = open(file_name, O_RDONLY);
+	if (file <0){
+		printf("deu merda\n");
+	}
 	char bufferitoa[100];
 
-	printf("filename is %s\n",file_name);
 	n=read(file, buf, CHUNK);
 //printf("bufread: .%s. size: %d\n\n\n",buf,n);
+
 	while(n>0){
 		memset(bufTrue,0,CHUNK+OPCODE+10);
 		strcpy(bufTrue,"");

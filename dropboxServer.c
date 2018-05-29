@@ -11,6 +11,10 @@
 #include <sys/queue.h>
 #include "dropboxUtils.h"
 #include <dirent.h>
+#include <netdb.h>
+#include <pwd.h>
+
+#include <unistd.h>
 
 #define MAIN_PORT 6000
 
@@ -73,21 +77,42 @@ void sync_server(int socket,  char*userID){
 
 void send_file(char *file, int socket, char *userID, int session_id){
 	//forma o path do arquivo no servidor com base no userid e nome do arquivo
-	char *path = malloc(sizeof(char)*(strlen(userID)+17+strlen(file)));
+	char path[100];
+	char ackesperado[100];
+	int i,j;
+	char userIDreal[100];
 
-	strcpy(path, "~/dropboxserver/");
-	strcat(path, userID);
+
+	printf("userID é: %s\n",userID);
+	i =0;
+	while(userID[i]!='-'){
+		i++;
+	}
+	i++;
+	strcpy(userIDreal,&userID[i]);
+
+
+	strcpy(path, "/dropboxserver/");
+	strcat(path, userIDreal);
 	strcat(path, "/");
-	strcat(path, file);
+	strcat(path, userID);
+	printf("path construido:%s\n",path);
+
+
+	strcpy(ackesperado,"ACKdownlo0000");
+
+	printf("buffer esperado: %s\n",ackesperado);
+
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
 	if (session_id == 1){
+		sendto(socket, ackesperado, strlen(ackesperado), 0, (const struct sockaddr *) &session_info_1.client_address, sizeof(struct sockaddr_in));
 		send_file_to(socket, path, session_info_1.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
 	}
 	else if (session_id == 2){
+		sendto(socket, ackesperado, strlen(ackesperado), 0, (const struct sockaddr *) &session_info_2.client_address, sizeof(struct sockaddr_in));
 		send_file_to(socket, path, session_info_2.client_address);//evia o arqivo para o cliente. O cliente deverá escolher o nome do arquivo gravado com o receive_file
 	}
-	free(path);
 }
 
 void receive_file(char *file, int socket, char*userID){

@@ -87,6 +87,51 @@ int login_server(char *host,int port){
 	return 1;
 }
 
+
+void get_file(char *file){
+	int n;
+	unsigned int length;
+	struct sockaddr_in  from;
+	struct hostent *server;
+	char buffer[256];
+	char ackesperado[100];
+	char bufferack[100];
+	int recebeuack = FALSE;
+	char path[100];
+	const char *homedir;
+
+	if ((homedir = getenv("HOME")) == NULL) {
+			homedir = getpwuid(getuid())->pw_dir;
+	}
+
+	strcpy(ackesperado,"ACKdownlo0000");
+	strcpy(buffer,"downlo0000");
+	strncat(buffer,file,sizeof(file)-1);
+	strcat(buffer,"\n-");
+	strcat(buffer,userID);
+
+	length = sizeof(struct sockaddr_in);
+
+	printf("buffer esperado: %s\n",ackesperado);
+	while(!recebeuack){
+		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
+		if (!strncmp(ackesperado,bufferack,13)){
+			recebeuack = TRUE;
+		}
+	}
+	printf("opa\n");
+	printf("filepath do cliente: %s\n",file);
+
+	strcpy(path,"/sync_dir_");
+	strcat(path,userID);
+	strcat(path,"/");
+	strcat(path,file);
+	recebeuack = receive_file_from(socket_local, path,  *((struct sockaddr*) &serv_addr));
+
+}
+
+
 void send_file(char *file){
 	int n;
 	unsigned int length;
@@ -120,33 +165,8 @@ void send_file(char *file){
 	}
 	recebeuack = send_file_to(socket_local, file, *((struct sockaddr*) &serv_addr));
 
-}
-
-void get_file(char *file){
-	int n;
-	unsigned int length;
-	struct sockaddr_in  from;
-	struct hostent *server;
-	char buffer[256];
-	char ackesperado[100];
-	char bufferack[100];
-	int recebeuack = FALSE;
-
-	strcpy(ackesperado,"ACKdownlo0000");
-	strcpy(buffer,"downlo0000");
-	strcat(buffer,file);
-
-	length = sizeof(struct sockaddr_in);
-
-	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		if (!strcmp(ackesperado,bufferack)){
-			recebeuack = TRUE;
-		}
-	}
-
-	recebeuack = receive_file_from(socket_local, file,  *((struct sockaddr*) &serv_addr));
+	printf("vai dar download em: %s\n",filename);
+	get_file(&filename[1]);
 
 }
 
