@@ -83,7 +83,7 @@ void send_file(char *file, int socket, char *userID, int session_id){
 	char userIDreal[100];
 
 
-	printf("userID é: %s\n",userID);
+	//printf("userID é: %s\n",userID);
 	i =0;
 	while(userID[i]!='-'){
 		i++;
@@ -96,12 +96,12 @@ void send_file(char *file, int socket, char *userID, int session_id){
 	strcat(path, userIDreal);
 	strcat(path, "/");
 	strcat(path, userID);
-	printf("path construido:%s\n",path);
+	//printf("path construido:%s\n",path);
 
 
 	strcpy(ackesperado,"ACKdownlo0000");
 
-	printf("buffer esperado: %s\n",ackesperado);
+	//printf("buffer esperado: %s\n",ackesperado);
 
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
@@ -126,11 +126,9 @@ void receive_file(char *file, int socket, char*userID){
 	strcat(path, file);
 
 	//send_string_to(socket, path);//este path pode ser como o clente ira salvar o file
-	printf("... %s\n",path);
+	//printf("... %s\n",path);
 	i = receive_file_from(socket, path,session_info_1.client_address);//recebe o arquivo do cliente no path montado. o arquivo pode estar em qualquer lugar no cliente
-	printf("\n\nGod\n");
 	//free(path);
-	printf("\nDevil\n");
 }
 
 // Auxiliary Functions
@@ -219,7 +217,7 @@ int redirect_package(char packet_buffer[1250], struct sockaddr client, int clien
 	if (strcmp(client.sa_data,session_info_1.client_address.sa_data) == 0 && session_info_1.can_receive){
 		session_info_1.can_receive = 0;
 		strcpy(session_info_1.session_buffer,packet_buffer);
-		printf("session buffer: %s packet buffer: %s",session_info_1.session_buffer,packet_buffer);
+		//printf("session buffer: %s packet buffer: %s",session_info_1.session_buffer,packet_buffer);
 		return 0;
 	}
 	//else if (socket_cmp(&session_info_1,&new_session) == 0 && session_info_1.can_receive){
@@ -263,11 +261,11 @@ void *session_manager(void *args){
 	struct sockaddr client_addr = current_session->client_address;
 	length = current_session->client_address_len;
 
-	printf("coisa por session manager \n");
+	//printf("coisa por session manager \n");
 	for(i =0;i<14;i++){
-		printf("%d",session_info_1.client_address.sa_data[i]);
+		//printf("%d",session_info_1.client_address.sa_data[i]);
 	}
-	printf("\n\n");
+	//printf("\n\n");
 	//struct sockaddr* client_addr = &(session_list[s_id].client_address);
 	SOCKET socket = client_info.socket;
   	while(online){
@@ -277,8 +275,6 @@ void *session_manager(void *args){
 			if ((*s_id) == 1){
 				current_session = &session_info_1;
 				strcpy(packet_buffer, session_info_1.session_buffer);
-				printf("Bado: %s\n",packet_buffer);
-				printf("Buceta de touro: %s\n",session_info_1.session_buffer);
 			}
 			else{
 				current_session = &session_info_2;
@@ -288,10 +284,10 @@ void *session_manager(void *args){
 	strncpy(op_code,packet_buffer,6);
 			op_code[6] = '\0';
 			if(op_code[0] != '\0'){
-				printf("Opcode is %s\n\n",op_code);
+				//printf("Opcode is %s\n\n",op_code);
 			}
 			if(n>0){
-				printf("entrou nessa coisa %s\n",op_code);
+				//printf("entrou nessa coisa %s\n",op_code);
 			}
 			if (!strcmp(op_code,"downlo")){
         		argument = getArgument(packet_buffer);
@@ -499,7 +495,7 @@ int main(int argc,char *argv[]){
         	send_file(argument,s_socket,userid,1);
 		}
 		else if (strcmp(op_code,"upload") == 0){
-		printf("\nPacket Buffer: %s\n", packet_buffer);
+		//printf("\nPacket Buffer: %s\n", packet_buffer);
         	argument = getArgument(packet_buffer);
 			sendto(s_socket,"ACKupload0000",sizeof("ACKupload0000"),0,(struct sockaddr *)&client, sizeof(session_info_1.client_address));
         	receive_file(argument,s_socket,userid);

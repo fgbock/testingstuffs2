@@ -112,7 +112,7 @@ void get_file(char *file){
 
 	length = sizeof(struct sockaddr_in);
 
-	printf("buffer esperado: %s\n",ackesperado);
+	//printf("buffer esperado: %s\n",ackesperado);
 	while(!recebeuack){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
@@ -120,8 +120,8 @@ void get_file(char *file){
 			recebeuack = TRUE;
 		}
 	}
-	printf("opa\n");
-	printf("filepath do cliente: %s\n",file);
+	//printf("opa\n");
+	//printf("filepath do cliente: %s\n",file);
 
 	strcpy(path,"/sync_dir_");
 	strcat(path,userID);
@@ -158,14 +158,14 @@ void send_file(char *file){
 		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
 		bufferack[13] = '\0';
-		printf("Ack recebido: %s\n",bufferack);
+		//printf("Ack recebido: %s\n",bufferack);
 		if (!strcmp(ackesperado,bufferack)){
 			recebeuack = TRUE;
 		}
 	}
 	recebeuack = send_file_to(socket_local, file, *((struct sockaddr*) &serv_addr));
 
-	printf("vai dar download em: %s\n",filename);
+	//printf("vai dar download em: %s\n",filename);
 	get_file(&filename[1]);
 
 }
@@ -222,7 +222,7 @@ void sync_client(){
 	strcat(path, userID);
 
 
-	printf("path >> %s\n",path);
+	//printf("path >> %s\n",path);
 	int length, i = 0;
 	int fd;
 	int wd;
@@ -235,12 +235,12 @@ void sync_client(){
 
 	while((file = readdir(dir)) != NULL){
 		if(file->d_type==DT_REG){
-			printf("\nread: %s", file->d_name);
+			//printf("\nread: %s", file->d_name);
 
 			strcpy(sendpath, path);
 			strcat(sendpath, file->d_name);
 			strcat(sendpath, "\n");
-			printf("\nSendpAth: %s\n", sendpath);
+			//printf("\nSendpAth: %s\n", sendpath);
 			send_file(sendpath);
 
 		}
@@ -396,9 +396,7 @@ void treat_command(char command[100]){
 		mustexit = TRUE;
 	}
 	else if (!strncmp("upload",command,6)){
-		printf("\ncommand: %s", command);
 		argument = getArgument(command);
-		printf("\nargument: %s", argument);
 		send_file(argument);
 
 		result = 1;
@@ -439,11 +437,11 @@ void *thread_sync(void *vargp){
 
 		must_sync = TRUE;
 
-		printf("Sincronizando a pasta local...\n");
+		//printf("Sincronizando a pasta local...\n");
 		if (must_sync){
 			sync_client();
 		}
-		printf("Acabou de sincronizar...\n");
+		//printf("Acabou de sincronizar...\n");
 
 
 		is_syncing = FALSE;

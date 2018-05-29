@@ -283,7 +283,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	int k =0;
 
 	removeBlank(file_name);
-	printf("path aqui ficou: %s\n",file_name);
+	//printf("path aqui ficou: %s\n",file_name);
 
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
 	if (file == -1){
@@ -327,10 +327,10 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 			//printf("%s\n",buf+offset+k);
 			k++;
 		}
-		printf("\nk: %d", k);
+		//printf("\nk: %d", k);
 		if (strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))==0){
 			//printf("Achou end of file!\n");
-			printf("%s\n",buf);
+			//printf("%s\n",buf);
 			endof = TRUE;
 		}
 
@@ -349,7 +349,7 @@ int receive_file_from(int socket, char* file_name, struct sockaddr sender){
 	if (close(file) == -1) {
 			 printf("erro no fechamento de arquivo\n");
 	 }
-	printf("Chegou aqui \n");
+	//printf("Chegou aqui \n");
 	return 0;
 
 }
@@ -366,12 +366,12 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
 
 	removeBlank(file_name);
-	printf("filename is : --%s--\n",file_name);
+	//printf("filename is : --%s--\n",file_name);
 
 
 	file = open(file_name, O_RDONLY);
 	if (file <0){
-		printf("deu merda\n");
+		//printf("erro\n");
 	}
 	char bufferitoa[100];
 
@@ -414,7 +414,7 @@ int send_file_to(int socket, char* file_name, struct sockaddr destination){
 	}
 	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
 	sendto(socket, "xxxCABOOARQUIVOxxx", CHUNK, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-	printf("Arquivo foi enviado...\n");
+	//printf("Arquivo foi enviado...\n");
 
 	n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
