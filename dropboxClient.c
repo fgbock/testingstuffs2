@@ -127,7 +127,7 @@ void get_file(char *file){
 	strcat(path,userID);
 	strcat(path,"/");
 	strcat(path,file);
-	recebeuack = receive_file_from(socket_local, path,  *((struct sockaddr*) &serv_addr));
+	recebeuack = receive_file_from(socket_local, path);
 
 }
 

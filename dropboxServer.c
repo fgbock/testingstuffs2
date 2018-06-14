@@ -41,9 +41,8 @@ struct client {
 	char user_id [MAXNAME];
 	int session_active [MAXSESSIONS];
 	short int session_port [MAXSESSIONS];
-	//
 	SOCKET socket;
-	struct file_info info [MAXFILES];
+	int socket_set;
 };
 
 struct packet {
@@ -146,33 +145,41 @@ void *session_manager(void* args){
 	struct pair *session_info = (struct pair *) args;
 	c_id = (*session_info).c_id;
 	s_id = (*session_info).s_id;
-	printf("\nClient Id is %d and  Server Id is %d\n\n", c_id, s_id);
+	//printf("\nClient Id is %d and  Session Id is %d\n\n", c_id, s_id);
 	session_port = (int) client_list[c_id].session_port[s_id];
 
-
-	// Set up a new socket
-	if((session_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("ERROR: Socket creation failure.\n");
-		exit(1);
-	}
-	memset((void *) &session,0,sizeof(struct sockaddr_in));
-	session.sin_family = AF_INET;
-	session.sin_addr.s_addr = htonl(INADDR_ANY);
-	session.sin_port = htons(session_port);
-	session_len = sizeof(session);
-	if (bind(session_socket,(struct sockaddr *) &session, session_len)) {
-		printf("Binding error\n");
-		active = 0;
+	if (client_list[c_id].socket_set == 0){
+		// Set up a new socket
+		if((session_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			printf("ERROR: Socket creation failure.\n");
+			exit(1);
+		}
+		memset((void *) &session,0,sizeof(struct sockaddr_in));
+		session.sin_family = AF_INET;
+		session.sin_addr.s_addr = htonl(INADDR_ANY);
+		session.sin_port = htons((int) session_port);
+		session_len = sizeof(session);
+		if (bind(session_socket,(struct sockaddr *) &session, session_len)) {
+			printf("Binding error\n");
+			active = 0;
+		}
+		else{
+			printf("Session Socket initialized, waiting for requests.\n\n");
+		}
+		client_list[c_id].socket_set = 1;
+		client_list[c_id].socket = session_socket;
 	}
 	else{
-		printf("Socket initialized, waiting for requests.\n\n");
+		session_socket = client_list[c_id].socket;
 	}
-	// Setup done
+	printf("Session Port is %hi\n\n",session_port);
+		// Setup done
 
 	while(active){
 		if (!recvfrom(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
 			printf("ERROR: Package reception error.\n\n");
 		}
+		printf("Opcode is: %hi\n\n",request.opcode);
 		switch(request.opcode){
 			case UPLOAD:
 				reply.opcode = ACK;
@@ -189,7 +196,7 @@ void *session_manager(void* args){
 			case LIST:
 				reply.opcode = ACK;
 				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				list_files(session_socket, client);
+				//list_files(session_socket, client);
 				break;
 			case DELETE:
 				reply.opcode = ACK;
@@ -245,7 +252,11 @@ int main(int argc,char *argv[]){
 	struct sockaddr client;
 	struct sockaddr_in server;
 	struct packet login_request, login_reply;
-	int  session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
+	int  i, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
+
+	for (i = 0; i < MAXCLIENTS; i++){
+		client_list[i].socket_set = 0;
+	}
 
 	create_server_root();
 	// Socket setup
@@ -271,18 +282,18 @@ int main(int argc,char *argv[]){
 		}
 		else{
 			session_port = login(login_request);
-			printf("\nopcode is %hi\n\n",login_request.opcode);
-			printf("\ndata is %s\n\n",login_request.data);
+			//printf("\nopcode is %hi\n\n",login_request.opcode);
+			//printf("\ndata is %s\n\n",login_request.data);
 			if (session_port > 0){
 				login_reply.opcode = ACK;
 				login_reply.seqnum = (short) session_port;
 				sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				printf("Login succesful...\n");
+				printf("Login succesful...\n\n");
 			}
 			else{
 				login_reply.opcode = NACK;
 				sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				printf("ERROR: Login unsuccesful...\n");
+				printf("ERROR: Login unsuccesful...\n\n");
 			}
 			//
 		}
