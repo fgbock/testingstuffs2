@@ -105,7 +105,7 @@ void receive_file(char *file, int socket, char*userID){
 	strcat(path, "/");
 	strcat(path, file);
 	printf("File path is :%s\n",path);
-	receive_file_from(socket, path, client_addr);
+	receive_file_from(socket, path);
 }
 
 int delete_file(char *file, int socket, char*userID){
@@ -184,7 +184,7 @@ void *session_manager(void* args){
 				reply.opcode = ACK;
 				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 				strncpy(filename, request.data, MAXNAME);
-				//send_file(filename, session_socket, client_list[c_id].user_id, client);
+				//send_file(filename, session_socket, client_list[c_id].user_id, client, client);
 				break;
 			case LIST:
 				reply.opcode = ACK;
