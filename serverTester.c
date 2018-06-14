@@ -78,7 +78,7 @@ int main(int argc,char *argv[]){
   n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
   n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
   if (request.opcode != ACK){
-    printf("Login unsuccesful\n\n")
+    printf("Login unsuccesful\n\n");
     return -1;
   }
   printf("Login reply is %hi\n\n",request.opcode);
@@ -89,7 +89,7 @@ int main(int argc,char *argv[]){
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
-		printf("Upload ack unsuccesful\n\n")
+		printf("Upload ack unsuccesful\n\n");
 		return -1;
 	}
 	// Here will be the actual upload:
@@ -99,7 +99,7 @@ int main(int argc,char *argv[]){
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
-		printf("Download ack unsuccesful\n\n")
+		printf("Download ack unsuccesful\n\n");
 		return -1;
 	}
 	// Here will be the actual download:
@@ -109,7 +109,7 @@ int main(int argc,char *argv[]){
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
-		printf("Delete ack unsuccesful\n\n")
+		printf("Delete ack unsuccesful\n\n");
 		return -1;
 	}
 
@@ -118,12 +118,12 @@ int main(int argc,char *argv[]){
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
   n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
-		printf("List ack unsuccesful\n\n")
+		printf("List ack unsuccesful\n\n");
 		return -1;
 	}
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != LIST){
-		printf("List op unsuccesful\n\n")
+		printf("List op unsuccesful\n\n");
 		return -1;
 	}
 	printf("List of files is: %s\n\n",request.data);
@@ -133,7 +133,7 @@ int main(int argc,char *argv[]){
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
   n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
-		printf("Close unsuccesful\n\n")
+		printf("Close unsuccesful\n\n");
 		return -1;
 	}
 }
