@@ -30,6 +30,8 @@
 #define LIST 5
 #define CLOSE 6
 #define LOGIN 7
+#define FILE 8
+#define END 9
 
 struct packet {
 	short int opcode;
@@ -80,16 +82,58 @@ int main(int argc,char *argv[]){
     return -1;
   }
   printf("Login reply is %hi\n\n",request.opcode);
-  printf("new port is is %hi\n\n",request.seqnum);
+  printf("New connection port is is %hi\n\n",request.seqnum);
 
   // Send an upload request
+	request.opcode = DELETE;
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("Upload ack unsuccesful\n\n")
+		return -1;
+	}
+	// Here will be the actual upload:
 
   // Send a download request
+	request.opcode = DOWNLOAD;
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("Download ack unsuccesful\n\n")
+		return -1;
+	}
+	// Here will be the actual download:
 
   // Send a delete request
+	request.opcode = DELETE;
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("Delete ack unsuccesful\n\n")
+		return -1;
+	}
 
   // Send a list request
+	request.opcode = CLOSE;
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+  n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("List ack unsuccesful\n\n")
+		return -1;
+	}
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != LIST){
+		printf("List op unsuccesful\n\n")
+		return -1;
+	}
+	printf("List of files is: %s\n\n",request.data);
 
-  // Send a close request
-
+	// Send a close request
+	request.opcode = CLOSE;
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+  n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("Close unsuccesful\n\n")
+		return -1;
+	}
 }
