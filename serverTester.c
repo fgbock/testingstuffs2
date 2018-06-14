@@ -75,10 +75,20 @@ int main(int argc,char *argv[]){
   printf("\ndata is %s\n\n",request.data);
   n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
   n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
-  printf("\nlogin reply is %hi\n\n",request.opcode);
-  printf("\nnew port is is %hi\n\n",request.seqnum);
-  sleep(2);
+  if (request.opcode != ACK){
+    printf("Login unsuccesful\n\n")
+    return -1;
+  }
+  printf("Login reply is %hi\n\n",request.opcode);
+  printf("new port is is %hi\n\n",request.seqnum);
+
   // Send an upload request
+
+  // Send a download request
+
+  // Send a delete request
+
+  // Send a list request
 
   // Send a close request
 
