@@ -201,7 +201,7 @@ void *session_manager(void* args){
 				reply.opcode = ACK;
 				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 				client_list[c_id].session_active[s_id] = 0;
-				pthread_exit(); // Should have an 'ack' by the client allowing us to terminate, ideally!
+				pthread_exit(0); // Should have an 'ack' by the client allowing us to terminate, ideally!
 				break;
 			default:
 				printf("ERROR: Invalid packet detected.\n\n");
