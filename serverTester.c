@@ -71,27 +71,41 @@ int main(int argc,char *argv[]){
   }
 
   // Send a login request
-  request.opcode = LOGIN;
-  strncpy(request.data,userID,20);
-  printf("\nopcode is %hi\n\n",request.opcode);
-  printf("\ndata is %s\n\n",request.data);
-  n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-  n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
-  if (request.opcode != ACK){
-    printf("Login unsuccesful\n\n");
-    return -1;
-  }
-  printf("Login reply is %hi\n\n",request.opcode);
-  printf("New connection port is is %hi\n\n",request.seqnum);
+	request.opcode = LOGIN;
+	strncpy(request.data,userID,20);
+	//printf("\nopcode is %hi\n\n",request.opcode);
+	//printf("\ndata is %s\n\n",request.data);
+	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	if (request.opcode != ACK){
+		printf("Login unsuccesful\n\n");
+		return -1;
+	}
+	printf("Login reply is %hi\n\n",request.opcode);
+
+		
+	// Set new port
+	int new_port = (int) request.seqnum;
+	printf("New connection port is %d\n\n",new_port);
+	server = gethostbyname(host);
+
+	if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket\n\n");
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(new_port);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
 
   // Send an upload request
-	request.opcode = DELETE;
+	request.opcode = UPLOAD;
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	printf("You are here\n\n");
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
 		printf("Upload ack unsuccesful\n\n");
 		return -1;
 	}
+	printf("Received UPLOAD ACK\n\n");
 	// Here will be the actual upload:
 
   // Send a download request
@@ -102,6 +116,7 @@ int main(int argc,char *argv[]){
 		printf("Download ack unsuccesful\n\n");
 		return -1;
 	}
+	printf("Received DOWNLOAD ACK\n\n");
 	// Here will be the actual download:
 
   // Send a delete request
@@ -112,28 +127,37 @@ int main(int argc,char *argv[]){
 		printf("Delete ack unsuccesful\n\n");
 		return -1;
 	}
+	printf("Received DELETE ACK\n\n");
 
   // Send a list request
-	request.opcode = CLOSE;
+	request.opcode = LIST;
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-  n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
 		printf("List ack unsuccesful\n\n");
 		return -1;
 	}
+	printf("Received LIST ACK\n\n");
+/*
 	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != LIST){
 		printf("List op unsuccesful\n\n");
 		return -1;
 	}
 	printf("List of files is: %s\n\n",request.data);
+*/
+	// Above: can only be used once I fix List function... lmfao
+
+	printf("Gonna wait a bit before sending CLOSE ;)\n\n");
+	sleep(10);
 
 	// Send a close request
 	request.opcode = CLOSE;
 	n = sendto(socket_local, (char *) &request, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-  n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	n = recvfrom(socket_local, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	if (request.opcode != ACK){
 		printf("Close unsuccesful\n\n");
 		return -1;
 	}
+	printf("Received CLOSE ACK\n\n");
 }
