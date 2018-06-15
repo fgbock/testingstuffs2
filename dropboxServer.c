@@ -41,8 +41,8 @@ struct client {
 	char user_id [MAXNAME];
 	int session_active [MAXSESSIONS];
 	short int session_port [MAXSESSIONS];
-	SOCKET socket;
-	int socket_set;
+	int socket_set[MAXSESSIONS];
+	SOCKET socket[MAXSESSIONS];
 };
 
 struct packet {
@@ -148,8 +148,9 @@ void *session_manager(void* args){
 	//printf("\nClient Id is %d and  Session Id is %d\n\n", c_id, s_id);
 	session_port = (int) client_list[c_id].session_port[s_id];
 
-	if (client_list[c_id].socket_set == 0){
+	if (client_list[c_id].socket_set[s_id] == 0){
 		// Set up a new socket
+		printf("Setting up a new socket for this session!\n\n");
 		if((session_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			printf("ERROR: Socket creation failure.\n");
 			exit(1);
@@ -164,22 +165,22 @@ void *session_manager(void* args){
 			active = 0;
 		}
 		else{
-			printf("Session Socket initialized, waiting for requests.\n\n");
+			printf("Client %d, Session %d Socket initialized, waiting for requests.\n\n", c_id, s_id);
 		}
-		client_list[c_id].socket_set = 1;
-		client_list[c_id].socket = session_socket;
+		client_list[c_id].socket_set[s_id] = 1;
+		client_list[c_id].socket[s_id] = session_socket;
 	}
 	else{
-		session_socket = client_list[c_id].socket;
+		session_socket = client_list[c_id].socket[s_id];
 	}
-	printf("Session Port is %hi\n\n",session_port);
+	printf("Client %d, Session %d Port is %hi\n\n", c_id, s_id, session_port);
 		// Setup done
 
 	while(active){
 		if (!recvfrom(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
 			printf("ERROR: Package reception error.\n\n");
 		}
-		printf("Opcode is: %hi\n\n",request.opcode);
+		printf("Client %d, Session %d Opcode is: %hi\n\n", c_id, s_id, request.opcode);
 		switch(request.opcode){
 			case UPLOAD:
 				reply.opcode = ACK;
@@ -252,10 +253,12 @@ int main(int argc,char *argv[]){
 	struct sockaddr client;
 	struct sockaddr_in server;
 	struct packet login_request, login_reply;
-	int  i, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
+	int i, j, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
 
 	for (i = 0; i < MAXCLIENTS; i++){
-		client_list[i].socket_set = 0;
+		for(j = 0; j < MAXSESSIONS; j++){
+			client_list[i].socket_set[j] = 0;
+		}
 	}
 
 	create_server_root();

@@ -356,6 +356,12 @@ int receive_file_from(int socket, char* file_name){
 }
 
 int send_file_to(int socket, char* file_name, struct sockaddr destination){
+	// Read file
+
+	// 
+}
+
+int old_send_file_to(int socket, char* file_name, struct sockaddr destination){
 	int n, file,counter;
 	char buf[CHUNK];
 	char bufTrue[CHUNK+OPCODE+20];
