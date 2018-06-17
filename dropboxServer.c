@@ -27,6 +27,8 @@
 #define LIST 5
 #define CLOSE 6
 #define LOGIN 7
+#define FILEPKT 8
+#define LASTPKT 9
 
 
 // Structures
@@ -88,22 +90,22 @@ int identify_client(char user_id [MAXNAME], int* client_index){
 }
 
 void send_file(char *file, int socket, char *userID, struct sockaddr client_addr){
-	char path[256];
-	strcpy(path, "~/dropboxserver/");
+	char path[300];
+	strcpy(path, "/home/fenris/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
-	printf("File path is :%s\n",path);
+	printf("File path is: %s\n\n",path);
 	send_file_to(socket, path, client_addr);
 }
 
 void receive_file(char *file, int socket, char*userID){
-	char path[256];
-	strcpy(path, "~/dropboxserver/");
+	char path[300];
+	strcpy(path, "/home/fenris/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
-	printf("File path is :%s\n",path);
+	printf("File path is: %s\n\n",path);
 	receive_file_from(socket, path);
 }
 
@@ -186,13 +188,13 @@ void *session_manager(void* args){
 				reply.opcode = ACK;
 				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 				strncpy(filename, request.data, MAXNAME);
-				//receive_file(filename, session_socket, client_list[c_id].user_id);
+				receive_file(filename, session_socket, client_list[c_id].user_id);
 				break;
 			case DOWNLOAD:
 				reply.opcode = ACK;
 				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 				strncpy(filename, request.data, MAXNAME);
-				//send_file(filename, session_socket, client_list[c_id].user_id, client, client);
+				send_file(filename, session_socket, client_list[c_id].user_id, client);
 				break;
 			case LIST:
 				reply.opcode = ACK;
@@ -212,7 +214,7 @@ void *session_manager(void* args){
 				pthread_exit(0); // Should have an 'ack' by the client allowing us to terminate, ideally!
 				break;
 			default:
-				printf("ERROR: Invalid packet detected.\n\n");
+				printf("ERROR: Invalid packet detected. Type %hi, seqnum: %hi.\n\n",request.opcode, request.seqnum);
 		}
 		//
 	}

@@ -25,6 +25,28 @@
 
 #define TRUE 1
 #define FALSE 0
+#define PACKETSIZE 1250
+#define SOCKET int
+#define MAIN_PORT 6000
+#define MAXCLIENTS 10
+#define MAXSESSIONS 2
+#define NACK 0
+#define ACK 1
+#define UPLOAD 2
+#define DOWNLOAD 3
+#define DELETE 4
+#define LIST 5
+#define CLOSE 6
+#define LOGIN 7
+#define FILEPKT 8
+#define LASTPKT 9
+
+
+struct packet {
+	short int opcode;
+	short int seqnum;
+	char data [PACKETSIZE - 4];
+};
 
 struct file_info{
 	char name[MAXNAME];
@@ -143,7 +165,7 @@ int create_server_root(){
 	strcat(syscmd, path);
 	strcat(syscmd, "\nfi");
 	ret = system(syscmd);
-
+	printf("Testing directory creation: %s\n\n", path);
 	free(path);
 	return ret;
 }
@@ -267,170 +289,63 @@ int send_string_to(int socket, char* str){
 }
 
 int receive_file_from(int socket, char* file_name){
-	struct sockaddr sender;
-	int n, file;
-	socklen_t clilen;
-	char buf[CHUNK+10]; //chunk de arquivo + header
-	clilen = sizeof(struct sockaddr_in);
-	int recebeutudo = FALSE;
-	char *bufACK = malloc(sizeof(char)*3); //para receber o ack
-	int counter = 0;
-	char mensagemdeconfirmacao[100];
-	char mensagemdeconfirmacaoanterior[100];
-	char mensagemesperada[100];
-	struct sockaddr_in serv_addr, from;
-	char bufferitoa[100];
-	char bufferitoAnt[100];
-	int k =0;
-
-	removeBlank(file_name);
-	//printf("path aqui ficou: %s\n",file_name);
+	int file;
+	struct packet file_packet, reply;
+	struct sockaddr_in from;
+	unsigned int length = sizeof(struct sockaddr_in);
 
 	file = open(file_name, O_RDWR | O_CREAT, 0666);
 	if (file == -1){
-		printf("Houve erro\n");
-		printf("path: ---%s---\n\n\n\n\n",file_name);
+		printf("Error! Path: %s\n\n",file_name);
 	}
-
-	int endof = FALSE;
-
-	while(!recebeutudo){
-		strcpy(mensagemesperada,"");
-		strcpy(bufferitoa,"");
-		strcat(mensagemesperada,"packet");
-		sprintf(bufferitoa,"%d",counter);
-		strcat(mensagemesperada,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-		strcpy(mensagemdeconfirmacao,"");
-		strcat(mensagemdeconfirmacao,"ACKpacket");
-		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-		strcpy(mensagemdeconfirmacaoanterior,"");
-		strcat(mensagemdeconfirmacaoanterior,"ACKpacket");
-		//strcpy(bufferitoa,"");
-		sprintf(bufferitoAnt,"%d",(counter-1));
-		strcat(mensagemdeconfirmacaoanterior,bufferitoAnt); //mensagem de confirmacao é ACKpacket<numerodopacote>
-		memset(buf,0,CHUNK+10);
-		n = recvfrom(socket, buf, CHUNK+50, 0, (struct sockaddr *) &sender, &clilen);
-
-
-		//printf("\nCounter: %d\tBufITOA: %s\tsize: %d", counter,bufferitoa, strlen(bufferitoa));
-
-		//if(counter==27 || counter ==28)printf("buf: %s\n\n\n",buf);
-
-		//printf("recebemos o pacote: %s \n",buf);
-
-		k=0;
-		int offset = (counter==0?1:strlen(bufferitoa))+strlen("packet"); //tam do header do packet
-		//printf("\noffset: %d", offset);
-		//printf("sizeitoa: %d\tsize packet: %d\n",(counter%10)+1,strlen("packet"));
-		while ((k<CHUNK)&&(strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))!=0) && (endof==FALSE) && (buf[offset + k]!='\0')){
-			//write(file,buf+10+k,1);
-			write(file,buf+offset+k,1);
-			//printf("%s\n",buf+offset+k);
-			k++;
-		}
-		//printf("\nk: %d", k);
-		if (strncmp(&buf[offset + k],"endoffile",sizeof("endoffile"))==0){
-			//printf("Achou end of file!\n");
-			//printf("%s\n",buf);
-			endof = TRUE;
-		}
-
-		//fprintf(stderr, "\nchegou aqui wtf\n");
-
-		if(strcmp(buf, "xxxCABOOARQUIVOxxx")==0){ //se recebeu pacote de fiim de arquivo
-			recebeutudo = TRUE;
-			sendto(socket, "xxxCABOOARQUIVOxxx", sizeof("xxxCABOOARQUIVOxxx"), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
-			//printf("Recemos a mensagem de fim de arquivo!\n");
-		}
-		else
-			//printf("Msg de ack eh: %s\n", mensagemdeconfirmacao);
-			sendto(socket, mensagemdeconfirmacao, sizeof(mensagemdeconfirmacao), 0, (const struct sockaddr *) &sender, sizeof(struct sockaddr_in));
-		counter++;
+	recvfrom(socket, (char *) &file_packet, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+	while(file_packet.opcode == FILEPKT){
+		reply.opcode = ACK;
+		reply.seqnum = file_packet.seqnum;
+		write(file, file_packet.data, PACKETSIZE - 4);
+		sendto(socket, (char *) &reply, PACKETSIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr_in));
+		recvfrom(socket, (char *) &file_packet, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	}
+	reply.opcode = ACK;
+	reply.seqnum = file_packet.seqnum;
+	write(file, file_packet.data, (int) file_packet.seqnum);
+	sendto(socket, (char *) &reply, PACKETSIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr_in));
 	if (close(file) == -1) {
-			 printf("erro no fechamento de arquivo\n");
+			 printf("Error\n\n");
+			 return -1;
 	 }
-	//printf("Chegou aqui \n");
 	return 0;
-
 }
 
 int send_file_to(int socket, char* file_name, struct sockaddr destination){
-	// Read file
-
-	// 
-}
-
-int old_send_file_to(int socket, char* file_name, struct sockaddr destination){
-	int n, file,counter;
-	char buf[CHUNK];
-	char bufTrue[CHUNK+OPCODE+20];
-	char mensagemdeconfirmacao[100];
-	struct sockaddr_in serv_addr, from;
-	char bufACK[100]; //para receber o ack
-	counter = 0;
+	int file, i = 1, bytes_read = 0;
+	struct packet file_packet, reply;
+	struct sockaddr_in from;
 	unsigned int length = sizeof(struct sockaddr_in);
-	file_name[strlen(file_name)-1]='\0'; // /n que tava vindo de graça
-
-	removeBlank(file_name);
-	//printf("filename is : --%s--\n",file_name);
-
 
 	file = open(file_name, O_RDONLY);
 	if (file <0){
-		//printf("erro\n");
-	}
-	char bufferitoa[100];
-
-	n=read(file, buf, CHUNK);
-//printf("bufread: .%s. size: %d\n\n\n",buf,n);
-
-	while(n>0){
-		memset(bufTrue,0,CHUNK+OPCODE+10);
-		strcpy(bufTrue,"");
-		strcpy(bufferitoa,"");
-		strcat(bufTrue,"packet");
-		sprintf(bufferitoa,"%d",counter);
-		strcat(bufTrue,bufferitoa); //pacote é packet<numerodopacote><DATACHUNK>
-		strncat(bufTrue,buf,n);
-		strcpy(mensagemdeconfirmacao,"");
-		strcat(mensagemdeconfirmacao,"ACKpacket");
-		strcat(mensagemdeconfirmacao,bufferitoa); //mensagem de confirmacao é ACKpacket<numerodopacote>
-		if (n<1240){
-			strcat(bufTrue,"endoffile");
-		}
-		//printf("buftrue: %s\n\n\n",bufTrue);
-
-		//if(counter==27 || counter ==28)printf("buftrue: %s\n\n\n",bufTrue);
-
-
-		//int offset = (counter%10)+1/*tamanho do indicador de pacote*/+strlen("packet"); //tam do header do packet
-
-		int offset = (counter==0?1:strlen(bufferitoa))+strlen("packet"); //tam do header do packet
-
-		while(strcmp(bufACK,mensagemdeconfirmacao)){ //enquanto nao forem iguais
-			sendto(socket, bufTrue, CHUNK+offset, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-			//printf("enviamos o pacote: %s \n",bufTrue);
-			n = recvfrom(socket, bufACK, 20, 0, (struct sockaddr *) &from, &length);
-			//printf("Recebemos Ack: %s\n",bufACK);
-			//usleep(250000);
-		}
-		n=read(file, buf, CHUNK);
-		//printf("tamanho que resta: %d\n",n);
-		counter++;
-	}
-	//envia o sinal de final do arquivo, de tal forma que não precisa indicar tam do arquivo
-	sendto(socket, "xxxCABOOARQUIVOxxx", CHUNK, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
-	//printf("Arquivo foi enviado...\n");
-
-	n = recvfrom(socket, bufACK, 3*sizeof(char), 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
 		return -1;
-
-	//free(bufACK);
-
-	close(file);
-
+	}
+	bytes_read = read(file, file_packet.data, PACKETSIZE - 4);
+	while(bytes_read > 0){
+		if (bytes_read == PACKETSIZE - 4){
+			file_packet.opcode = FILEPKT;
+			file_packet.seqnum = (short) i;
+		}
+		else{
+			file_packet.opcode = LASTPKT;
+			file_packet.seqnum = (short) bytes_read;
+		}
+		while(reply.opcode != ACK || reply.seqnum != file_packet.seqnum){
+			sendto(socket, (char *) &file_packet, PACKETSIZE, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
+			recvfrom(socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+			printf("Reply was %hi for pkt #%hi, expected 1 for %hi\n\n",reply.opcode,reply.seqnum, file_packet.seqnum);
+		}
+		bytes_read = read(file, file_packet.data, PACKETSIZE - 4);
+		printf("Bytes read: %d\n\n", bytes_read);
+		i++;
+	}
 	return 0;
 }
 
