@@ -142,7 +142,26 @@ char * getArgument(char* command){
 		i++;
 	while(command[i]==' ')
 		i++;
-	while((command[i]!=' ')&&(command[i]!='\0')){
+	while(command[i]!=' '&& command[i]!='\0' && command[i]!='\n'){
+		argument[j]= command[i];
+		i++;
+		j++;
+	}
+	return argument;
+}
+char * getSecondArgument(char* command){
+	char* argument;
+	int i=0; int j=0;
+	argument = (char*) malloc(sizeof(char)*100);
+	while(command[i]!=' ')
+		i++;
+	while(command[i]==' ')
+		i++;
+	while(command[i]!=' ')
+		i++;
+	while(command[i]==' ')
+		i++;
+	while(command[i]!=' '&& command[i]!='\0' && command[i]!='\n'){
 		argument[j]= command[i];
 		i++;
 		j++;
@@ -288,15 +307,15 @@ int send_string_to(int socket, char* str){
 
 }
 
-int receive_file_from(int socket, char* file_name){
+int receive_file_from(int socket, char* filename){
 	int file;
 	struct packet file_packet, reply;
 	struct sockaddr_in from;
 	unsigned int length = sizeof(struct sockaddr_in);
 
-	file = open(file_name, O_RDWR | O_CREAT, 0666);
+	file = open(filename, O_RDWR | O_CREAT, 0666);
 	if (file == -1){
-		printf("Error! Path: %s\n\n",file_name);
+		printf("Error! Path: %s\n\n",filename);
 	}
 	recvfrom(socket, (char *) &file_packet, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	while(file_packet.opcode == FILEPKT){
@@ -317,13 +336,13 @@ int receive_file_from(int socket, char* file_name){
 	return 0;
 }
 
-int send_file_to(int socket, char* file_name, struct sockaddr destination){
+int send_file_to(int socket, char* filepath, struct sockaddr destination){
 	int file, i = 1, bytes_read = 0;
 	struct packet file_packet, reply;
 	struct sockaddr_in from;
 	unsigned int length = sizeof(struct sockaddr_in);
 
-	file = open(file_name, O_RDONLY);
+	file = open(filepath, O_RDONLY);
 	if (file <0){
 		return -1;
 	}

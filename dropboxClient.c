@@ -35,6 +35,7 @@ int port;
 int socket_local;
 struct sockaddr_in serv_addr;
 struct hostent *server;
+double time_between_sync = 10000.f;
 
 //=======================================================
 void pickFileNameFromPath(char *path,char *filename){
@@ -48,7 +49,7 @@ void pickFileNameFromPath(char *path,char *filename){
 			lastdash = i;
 		i++;
 	}
-	strcpy(filename,&aux[lastdash]);
+	strcpy(filename,&aux[lastdash+1]);
 
 }
 
@@ -77,10 +78,20 @@ int login_server(char *host,int port){
 			recebeuack = TRUE;
 		}
 	}
+	int newport = reply.seqnum;
+
+	if ((socket_local = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+		printf("ERROR opening socket");
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(newport);
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	bzero(&(serv_addr.sin_zero), 8);
+
+
 	return 1;
 }
 
-void get_file(char *file){
+void get_file(char *filename, char * finalpath){
 	int n;
 	struct sockaddr_in from;
 	char buffer[BUFFERSIZE];
@@ -88,8 +99,9 @@ void get_file(char *file){
 	int recebeuack = FALSE;
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
-	char path[100];
+	char filepath[300];
 	const char *homedir;
+	char path[300];
 
 	if ((homedir = getenv("HOME")) == NULL) {
 			homedir = getpwuid(getuid())->pw_dir;
@@ -97,7 +109,7 @@ void get_file(char *file){
 
 	message.opcode = DOWNLOAD;
 	message.seqnum = 0;
-	strcpy(message.data,file);
+	strcpy(message.data,filename);
 
 	while(!recebeuack){
 		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
@@ -107,11 +119,13 @@ void get_file(char *file){
 		}
 	}
 
-	strcpy(path,"/sync_dir_");
-	strcat(path,userID);
-	strcat(path,"/");
-	strcat(path,file);
-	recebeuack = receive_file_from(socket_local, path);
+	strcpy(filepath,"~/");
+	removeBlank(filepath);
+	strcat(filepath,&finalpath[2]);
+	strcat(filepath,filename);
+
+	printf("Recebemos ack. Vamos receber o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
+	recebeuack = receive_file_from(socket_local, filepath);
 
 }
 
@@ -123,6 +137,8 @@ void send_file(char *file){
 	int recebeuack = FALSE;
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
+	char filepath[300];
+	char pathsyncdir[100];
 
 	struct sockaddr* destiny;
 	char filename[100];
@@ -140,14 +156,20 @@ void send_file(char *file){
 			recebeuack = TRUE;
 		}
 	}
-	recebeuack = send_file_to(socket_local, file, *((struct sockaddr*) &serv_addr));
+	strcpy(filepath,file);
+	removeBlank(filepath);
+	printf("Recebemos ack. Vamos enviar o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
+	send_file_to(socket_local, filepath, *((struct sockaddr*) &serv_addr));
 
-	//printf("vai dar download em: %s\n",filename);
-	get_file(&filename[1]);
+	strcpy(pathsyncdir,"~/");
+	strcat(pathsyncdir,"sync_dir_");
+	strcat(pathsyncdir,userID);
+	strcat(pathsyncdir,"/");
+	get_file(filename,pathsyncdir);
 
 }
 
-void delete_file(char *file){
+void delete_file(char *filename){
 	int n;
 	struct sockaddr_in from;
 	char buffer[BUFFERSIZE];
@@ -157,15 +179,23 @@ void delete_file(char *file){
 	unsigned int length = sizeof(struct sockaddr_in);
 	int ret;
 	FILE *fp;
+	char path[300];
 
-	fp = fopen (file,"r");
+	strcpy(path,"~/");
+	removeBlank(path);
+	strcat(path,"sync_dir_");
+	strcat(path,userID);
+	strcat(path,"/");
+	strcat(path,filename);
+
+	fp = fopen (path,"r");
   if (fp == NULL) {
       printf ("Arquivo não existe\n");
   }
 	else{
 		message.opcode = DELETE;
 		message.seqnum = 0;
-		strcpy(message.data,file);
+		strcpy(message.data,filename);
 
 		while(!recebeuack){
 			n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
@@ -175,7 +205,7 @@ void delete_file(char *file){
 			}
 		}
 	}
-	ret = remove(file);
+	ret = remove(path);
 
 	if(ret == 0) {
 		 printf("Arquivo foi deletado com sucesso!\n");
@@ -311,34 +341,31 @@ void close_session(){
 //=======================================================
 void list_server(){
 	int n;
-	unsigned int length;
-	struct sockaddr_in  from;
-	struct hostent *server;
-	char buffer[256];
-	char ackesperado[100];
-	char bufferack[100];
+	struct sockaddr_in from;
+	char buffer[BUFFERSIZE];
+	int i;
 	int recebeuack = FALSE;
-	int i,j;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
 
-	strcpy(ackesperado,"ACKlist_f0000");
-	strcpy(buffer,"list_f0000");
-	length = sizeof(struct sockaddr_in);
+	create_home_dir(userID);
+
+	for (i=0;i<BUFFERSIZE;i++)
+		buffer[i]='\0';
+
+	message.opcode = LIST;
+	message.seqnum = 0;
+	strcpy(message.data,userID);
 
 	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		if (!strncmp(ackesperado,bufferack,13)){
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		if (reply.opcode == ACK){
 			recebeuack = TRUE;
 		}
 	}
 
-	i = 0; j=13;
-	while(bufferack[j]!= '\0'){
-		buffer[i]=bufferack[j];
-		i++;
-		j++;
-	}
-	printf("%s",buffer);
+	printf("Listagem do server: %s\n",reply.data);
 }
 
 void list_client(){
@@ -348,8 +375,11 @@ void list_client(){
 	char saida[100];
 	char path[256];
 
-	strcpy(path, "~/sync_dir_");
-	strcat(path, userID);
+	strcpy(path,"~/");
+	removeBlank(path);
+	strcat(path,"sync_dir_");
+	strcat(path,userID);
+	strcat(path,"/");
 
   dp = opendir (path);
   if (dp != NULL)
@@ -381,7 +411,7 @@ void treat_command(char command[100]){
 	}
 	else if (!strncmp("download",command,8)){
 		argument = getArgument(command);
-		get_file(argument);
+		get_file(argument,getSecondArgument(command));
 
 		result = 2;
 	}
@@ -398,6 +428,12 @@ void treat_command(char command[100]){
 		if(!result)
 			result = 5;
 	}
+	else if (!strncmp("delete",command,6)){
+		argument = getArgument(command);
+		delete_file(argument);
+		result =6;
+	}
+
 
 	if (!result){;
 	}
@@ -474,7 +510,6 @@ int main(int argc,char *argv[]){
 	    int n_threads = 2;
 			double last_time;
 			double actual_time;
-			double time_between_sync = 10.f;
 			last_time=  (double) clock() / CLOCKS_PER_SEC;
 			actual_time = (double) clock() / CLOCKS_PER_SEC;
 			pthread_create(&(tid[0]), NULL, thread_interface,NULL);
