@@ -91,7 +91,8 @@ int identify_client(char user_id [MAXNAME], int* client_index){
 
 void send_file(char *file, int socket, char *userID, struct sockaddr client_addr){
 	char path[300];
-	strcpy(path, "/home/fenris/dropboxserver/");
+	strcpy(path, getenv("HOME"));
+	strcat(path, "/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
@@ -101,7 +102,8 @@ void send_file(char *file, int socket, char *userID, struct sockaddr client_addr
 
 void receive_file(char *file, int socket, char*userID){
 	char path[300];
-	strcpy(path, "/home/fenris/dropboxserver/");
+	strcpy(path, getenv("HOME"));
+	strcat(path, "/dropboxserver/");
 	strcat(path, userID);
 	strcat(path, "/");
 	strcat(path, file);
