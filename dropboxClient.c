@@ -18,14 +18,15 @@
 #include <netdb.h>
 #include <pwd.h>
 
-#define SOCKET int
-#define TRUE 1
-#define FALSE 0
 #define BUFFERSIZE 1250
-
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
+struct packet {
+	short int opcode;
+	short int seqnum;
+	char data [PACKETSIZE - 4];
+};
 int is_syncing = FALSE;
 int mustexit = FALSE;
 char userID[20];
@@ -36,7 +37,6 @@ struct sockaddr_in serv_addr;
 struct hostent *server;
 
 //=======================================================
-
 void pickFileNameFromPath(char *path,char *filename){
 	char aux[100]; char aux2[100];
 	int i=0;int j=0;
@@ -52,51 +52,42 @@ void pickFileNameFromPath(char *path,char *filename){
 
 }
 
-
 int login_server(char *host,int port){
 	int n;
-	unsigned int length;
 	struct sockaddr_in from;
 	char buffer[BUFFERSIZE];
-	char ackesperado[100];
-	char bufferack[100];
 	int i;
 	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
 
 	create_home_dir(userID);
 
 	for (i=0;i<BUFFERSIZE;i++)
 		buffer[i]='\0';
 
-	strcpy(ackesperado,"ACKlogins0000");
-	strcpy(buffer,"logins0000");
-	strcat(buffer,userID);
-
-	length = sizeof(struct sockaddr_in);
+	message.opcode = LOGIN;
+	message.seqnum = LOGIN;
+	strcpy(message.data,userID);
 
 	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		bufferack[13] = '\0'; //wtf
-		if (strcmp(ackesperado,bufferack)==0){
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		if (reply.opcode == ACK){
 			recebeuack = TRUE;
 		}
 	}
-
-
 	return 1;
 }
 
-
 void get_file(char *file){
 	int n;
-	unsigned int length;
-	struct sockaddr_in  from;
-	struct hostent *server;
-	char buffer[256];
-	char ackesperado[100];
-	char bufferack[100];
+	struct sockaddr_in from;
+	char buffer[BUFFERSIZE];
+	int i;
 	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
 	char path[100];
 	const char *homedir;
 
@@ -104,24 +95,17 @@ void get_file(char *file){
 			homedir = getpwuid(getuid())->pw_dir;
 	}
 
-	strcpy(ackesperado,"ACKdownlo0000");
-	strcpy(buffer,"downlo0000");
-	strncat(buffer,file,sizeof(file)-1);
-	strcat(buffer,"\n-");
-	strcat(buffer,userID);
+	message.opcode = DOWNLOAD;
+	message.seqnum = 0;
+	strcpy(message.data,file);
 
-	length = sizeof(struct sockaddr_in);
-
-	//printf("buffer esperado: %s\n",ackesperado);
 	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		if (!strncmp(ackesperado,bufferack,13)){
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		if (reply.opcode == ACK){
 			recebeuack = TRUE;
 		}
 	}
-	//printf("opa\n");
-	//printf("filepath do cliente: %s\n",file);
 
 	strcpy(path,"/sync_dir_");
 	strcat(path,userID);
@@ -131,35 +115,28 @@ void get_file(char *file){
 
 }
 
-
 void send_file(char *file){
 	int n;
-	unsigned int length;
 	struct sockaddr_in from;
-	struct hostent *server;
-	char buffer[256];
-	char ackesperado[100];
-	char bufferack[100];
+	char buffer[BUFFERSIZE];
+	int i;
 	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
+
 	struct sockaddr* destiny;
 	char filename[100];
 
 	pickFileNameFromPath(file,filename);
 
-	strcpy(ackesperado,"ACKupload0000");
-	strcpy(buffer,"upload0000");
-	strcat(buffer,userID);
-	strcat(buffer," ");
-	strcat(buffer,filename);
-
-	length = sizeof(struct sockaddr_in);
+	message.opcode = UPLOAD;
+	message.seqnum = 0;
+	strcpy(message.data,filename);
 
 	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		bufferack[13] = '\0';
-		//printf("Ack recebido: %s\n",bufferack);
-		if (!strcmp(ackesperado,bufferack)){
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		if (reply.opcode == ACK){
 			recebeuack = TRUE;
 		}
 	}
@@ -172,13 +149,12 @@ void send_file(char *file){
 
 void delete_file(char *file){
 	int n;
-	unsigned int length;
 	struct sockaddr_in from;
-	struct hostent *server;
-	char buffer[256];
-	char ackesperado[100];
-	char bufferack[100];
+	char buffer[BUFFERSIZE];
+	int i;
 	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
 	int ret;
 	FILE *fp;
 
@@ -187,15 +163,14 @@ void delete_file(char *file){
       printf ("Arquivo não existe\n");
   }
 	else{
-		strcpy(ackesperado,"ACKdelete0000");
-		strcpy(buffer,"delete0000");
-		strcat(buffer,file);
+		message.opcode = DELETE;
+		message.seqnum = 0;
+		strcpy(message.data,file);
 
-		length = sizeof(struct sockaddr_in);
 		while(!recebeuack){
-			n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-			n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-			if (!strcmp(ackesperado,bufferack)){
+			n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+			n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+			if (reply.opcode == ACK){
 				recebeuack = TRUE;
 			}
 		}
@@ -309,23 +284,26 @@ void sync_client(){
 
 void close_session(){
 	int n;
-	unsigned int length;
-	struct sockaddr_in  from;
-	struct hostent *server;
-	char buffer[100];
-	char ackesperado[100];
-	char bufferack[100];
+	struct sockaddr_in from;
+	char buffer[BUFFERSIZE];
+	int i;
 	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
 
-	strcpy(ackesperado,"ACKcloses0000");
-	strcpy(buffer,"closes0000");
+	create_home_dir(userID);
 
-	length = sizeof(struct sockaddr_in);
+	for (i=0;i<BUFFERSIZE;i++)
+		buffer[i]='\0';
+
+	message.opcode = CLOSE;
+	message.seqnum = 0;
+	strcpy(message.data,userID);
 
 	while(!recebeuack){
-		n = sendto(socket_local, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, bufferack, 100, 0, (struct sockaddr *) &from, &length);
-		if (!strcmp(ackesperado,bufferack)){
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		if (reply.opcode == ACK){
 			recebeuack = TRUE;
 		}
 	}

@@ -10,6 +10,25 @@
 #define CHUNK 1240
 #define OPCODE 10
 
+#define TRUE 1
+#define FALSE 0
+#define PACKETSIZE 1250
+#define SOCKET int
+#define MAIN_PORT 6000
+#define MAXCLIENTS 10
+#define MAXSESSIONS 2
+#define NACK 0
+#define ACK 1
+#define UPLOAD 2
+#define DOWNLOAD 3
+#define DELETE 4
+#define LIST 5
+#define CLOSE 6
+#define LOGIN 7
+#define FILEPKT 8
+#define LASTPKT 9
+
+
 void removeBlank(char * filename);
 
 int create_home_dir(char *userID);
