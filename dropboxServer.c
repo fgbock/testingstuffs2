@@ -112,25 +112,36 @@ void receive_file(char *file, int socket, char*userID){
 }
 
 int delete_file(char *file, int socket, char*userID){
-	if(remove(file) == 0){
+	char path[300];
+	strcpy(path, getenv("HOME"));
+	strcat(path, "/dropboxserver/");
+	strcat(path, userID);
+	strcat(path, "/");
+	strcat(path, file);
+	if(remove(path) == 0){
 		return 1;
 	}
 	return 0;
 }
 
-void list_files(SOCKET socket, struct sockaddr client){
-	DIR *dp;
+void list_files(SOCKET socket, struct sockaddr client, char *userID){
 	struct dirent *ep;
-	char files_list[110];
+	char files_list[PACKETSIZE - 4];
 	struct packet reply;
+	char path[300];
 
-	reply.opcode = LIST;
-	dp = opendir ("./");
+	reply.opcode = ACK;
+	strcpy(path, getenv("HOME"));
+	strcat(path, "/dropboxserver/");
+	strcat(path, userID);
+	strcat(path, "/");
+	DIR *dp = opendir (path);
 	if (dp != NULL){
 			while (ep = readdir (dp)){
 				strcat(files_list,ep->d_name);
+				strcat(files_list,"\n");
 			}
-			strncpy(reply.data, files_list, 110);
+			strncpy(reply.data, files_list, PACKETSIZE - 4);
 			sendto(socket, (char *) &reply, PACKETSIZE,0,(struct sockaddr *)&client, sizeof(client));
 			(void) closedir (dp);
 	}
@@ -200,8 +211,8 @@ void *session_manager(void* args){
 				break;
 			case LIST:
 				reply.opcode = ACK;
-				sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				//list_files(session_socket, client);
+				//sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+				list_files(session_socket, client, client_list[c_id].user_id);
 				break;
 			case DELETE:
 				reply.opcode = ACK;
