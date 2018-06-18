@@ -147,6 +147,7 @@ char * getArgument(char* command){
 		i++;
 		j++;
 	}
+	argument[j] = '\0';
 	return argument;
 }
 char * getSecondArgument(char* command){
@@ -166,6 +167,7 @@ char * getSecondArgument(char* command){
 		i++;
 		j++;
 	}
+	argument[j] = '\0';
 	return argument;
 }
 
