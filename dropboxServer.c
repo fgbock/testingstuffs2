@@ -31,7 +31,7 @@
 #define LASTPKT 9
 #define PING 10
 
-
+#define PORTRM 5999
 // Structures
 struct file_info {
 	char name[MAXNAME];
@@ -61,6 +61,10 @@ struct pair {
 
 // Global Variables
 struct client client_list [MAXCLIENTS];
+char endprimario[20];
+int port;
+int isPrimario = FALSE;
+
 
 // Subroutines
 char * devolvePathHomeServer(char *userID){
@@ -344,56 +348,70 @@ int main(int argc,char *argv[]){
 	struct packet login_request, login_reply;
 	int i, j, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
 
-	//strcpy(host,argv[1]);
-	//replica_manager(host);
-
-	for (i = 0; i < MAXCLIENTS; i++){
-		for(j = 0; j < MAXSESSIONS; j++){
-			client_list[i].socket_set[j] = 0;
-		}
+	if (argc!=4){
+		printf("Escreva no formato: ./dropboxServer <endereço_do_server_primario>\n");
 	}
-
-	create_server_root();
-	// Socket setup
-	if((main_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("ERROR: Socket creation failure.\n");
-		exit(1);
-	}
-	memset((void *) &server,0,sizeof(struct sockaddr_in));
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = htonl(INADDR_ANY);
-	server.sin_port = htons(MAIN_PORT);
-	server_len = sizeof(server);
-	if (bind(main_socket,(struct sockaddr *) &server, server_len)) {
-		printf("Binding error\n");
-		exit(1);
-	}
-	printf("Socket initialized, waiting for requests.\n\n");
-	// Setup done
-
-	while(online){
-		if (!recvfrom(main_socket, (char *) &login_request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
-			printf("ERROR: Package reception error.\n\n");
+	else{ //wrote correcly the arguments
+		strcpy(endprimario,argv[1]);
+		if(strcmp(endprimario,"127.0.0.1")==0){
+			isPrimario = TRUE;
 		}
 		else{
-			session_port = login(login_request);
-			//printf("\nopcode is %hi\n\n",login_request.opcode);
-			//printf("\ndata is %s\n\n",login_request.data);
-			if (session_port > 0){
-				login_reply.opcode = ACK;
-				login_reply.seqnum = (short) session_port;
-				sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				printf("Login succesful...\n\n");
+			isPrimario = FALSE;
+		}
+
+		//strcpy(host,argv[1]);
+		//replica_manager(host);
+
+		for (i = 0; i < MAXCLIENTS; i++){
+			for(j = 0; j < MAXSESSIONS; j++){
+				client_list[i].socket_set[j] = 0;
+			}
+		}
+
+		create_server_root();
+		// Socket setup
+		if((main_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			printf("ERROR: Socket creation failure.\n");
+			exit(1);
+		}
+		memset((void *) &server,0,sizeof(struct sockaddr_in));
+		server.sin_family = AF_INET;
+		server.sin_addr.s_addr = htonl(INADDR_ANY);
+		server.sin_port = htons(MAIN_PORT);
+		server_len = sizeof(server);
+		if (bind(main_socket,(struct sockaddr *) &server, server_len)) {
+			printf("Binding error\n");
+			exit(1);
+		}
+		printf("Socket initialized, waiting for requests.\n\n");
+		// Setup done
+
+		while(online){
+			if (!recvfrom(main_socket, (char *) &login_request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
+				printf("ERROR: Package reception error.\n\n");
 			}
 			else{
-				login_reply.opcode = NACK;
-				sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				printf("ERROR: Login unsuccesful...\n\n");
+				session_port = login(login_request);
+				//printf("\nopcode is %hi\n\n",login_request.opcode);
+				//printf("\ndata is %s\n\n",login_request.data);
+				if (session_port > 0){
+					login_reply.opcode = ACK;
+					login_reply.seqnum = (short) session_port;
+					sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					printf("Login succesful...\n\n");
+				}
+				else{
+					login_reply.opcode = NACK;
+					sendto(main_socket, (char *) &login_reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					printf("ERROR: Login unsuccesful...\n\n");
+				}
+				//
 			}
-			//
+			login_request.opcode = 0;
 		}
-		login_request.opcode = 0;
 	}
+
 
 	return 0;
 }
