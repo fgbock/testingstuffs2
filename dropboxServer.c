@@ -71,9 +71,8 @@ struct hostent *primario;
 int socket_rm[2];
 
 //TODO FERNANDO: criar lista/estrutura que guarda os endereços de todos os servidores
-// Subroutines
 
-//================PART 1===============================================
+//================PART 1=================================================
 char * devolvePathHomeServer(char *userID){
 	char * pathsyncdir;
 	pathsyncdir = (char*) malloc(sizeof(char)*100);
@@ -293,7 +292,7 @@ int login(struct packet login_request){
 	return -1;
 }
 //=======================================================================
-//================PART 2===============================================
+//================PART 2=================================================
 void eleicaodeprimario(){
 	//TODO FERNANDO
 }
@@ -383,41 +382,40 @@ void* thread_rm_pings(void *vargp){
 }
 
 void* thread_rm_updates(void *vargp){
-
 	while(TRUE){
-		if (!recvfrom(socket_rm[1], (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
-			printf("ERROR: Package reception error.\n\n");
-		}
-		printf("Client %d, Session %d Opcode is: %hi\n\n", c_id, s_id, request.opcode);
-		switch(request.opcode){
-			case UPLOAD:
-				reply.opcode = ACK;
-				sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				strncpy(filename, request.data, MAXNAME);
-				receive_file(filename, socket_rm[1], client_list[c_id].user_id);
-				break;
-			case DOWNLOAD:
-				reply.opcode = ACK;
-				sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				strncpy(filename, request.data, MAXNAME);
-				send_file(filename, socket_rm[1], client_list[c_id].user_id, client);
-				break;
-			case LIST:
-				reply.opcode = ACK;
-				list_files(socket_rm[1], client, client_list[c_id].user_id);
-				break;
-			case DELETE:
-				reply.opcode = ACK;
-				sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
-				strncpy(filename, request.data, MAXNAME);
-				delete_file(filename, socket_rm[1], client_list[c_id].user_id);
-				break;
-			default:
-				printf("ERROR: Invalid packet detected. Type %hi, seqnum: %hi.\n\n",request.opcode, request.seqnum);
+		if (isPrimario){
+			if (!recvfrom(socket_rm[1], (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
+				printf("ERROR: Package reception error.\n\n");
+			}
+			printf("Client %d, Session %d Opcode is: %hi\n\n", c_id, s_id, request.opcode);
+			switch(request.opcode){
+				case UPLOAD:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					strncpy(filename, request.data, MAXNAME);
+					receive_file(filename, socket_rm[1], client_list[c_id].user_id);
+					break;
+				case DOWNLOAD:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					strncpy(filename, request.data, MAXNAME);
+					send_file(filename, socket_rm[1], client_list[c_id].user_id, client);
+					break;
+				case LIST:
+					reply.opcode = ACK;
+					list_files(socket_rm[1], client, client_list[c_id].user_id);
+					break;
+				case DELETE:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					strncpy(filename, request.data, MAXNAME);
+					delete_file(filename, socket_rm[1], client_list[c_id].user_id);
+					break;
+				default:
+					printf("ERROR: Invalid packet detected. Type %hi, seqnum: %hi.\n\n",request.opcode, request.seqnum);
+			}
 		}
 	}
-
-
 	pthread_exit((void *)NULL);
 }
 //=======================================================================
