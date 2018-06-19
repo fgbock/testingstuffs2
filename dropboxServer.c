@@ -19,6 +19,7 @@
 #define MAIN_PORT 6000
 #define MAXCLIENTS 10
 #define MAXSESSIONS 2
+#define MAXSERVERS 3
 #define NACK 0
 #define ACK 1
 #define UPLOAD 2
@@ -58,6 +59,7 @@ struct pair {
 	int c_id;
 	int s_id;
 };
+
 
 // Global Variables
 struct client client_list [MAXCLIENTS];
@@ -347,8 +349,11 @@ void* thread_ping(void *vargp){
 
 
 void waitforpings(){
+	int n;
+	struct sockaddr_in from;
+	struct packet message, reply;
 	while(TRUE){
-		//TODO fernando escrever o que vem aqui (resposta dos pings dos secundarios)
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 	}
 }
 
