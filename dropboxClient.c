@@ -33,9 +33,10 @@ char userID[20];
 char host[20];
 int port;
 int socket_local;
+int request_lock;
 struct sockaddr_in serv_addr;
 struct hostent *server;
-double time_between_sync = 5000.f;
+double time_between_sync = 10.f;
 
 //=======================================================
 void pickFileNameFromPath(char *path,char *filename){
@@ -342,16 +343,24 @@ void treat_command(char command[100]){
 	}
 	else if (!strncmp("upload",command,6)){
 		argument = getArgument(command);
+		while (request_lock == 1){
+			//just wait :D
+		}
+		request_lock = 1;
 		send_file(argument);
 		pickFileNameFromPath(argument,filename);
 		get_file(filename,devolvePathSyncDirBruto());
-
+		request_lock = 0;
 		result = 1;
 	}
 	else if (!strncmp("download",command,8)){
 		argument = getArgument(command);
+		while (request_lock == 1){
+			//just wait :D
+		}
+		request_lock = 1;
 		get_file(argument,getSecondArgument(command));
-
+		request_lock = 0;
 		result = 2;
 	}
 	else if (!strncmp("list_server",command,11)){
@@ -391,9 +400,14 @@ void *thread_sync(void *vargp){
 		must_sync = TRUE;
 
 		//printf("Sincronizando a pasta local...\n");
+		while (request_lock == 1){
+			//just wait :D
+		}
+		request_lock = 1;
 		if (must_sync){
 			sync_client();
 		}
+		request_lock = 0;
 		//printf("Acabou de sincronizar...\n");
 
 
@@ -415,6 +429,7 @@ void *thread_interface(void *vargp){
 }
 
 int main(int argc,char *argv[]){
+	request_lock = 0;
 	int loginworked = FALSE;
 	char strporta[100];
 

@@ -301,7 +301,7 @@ int primary_rm(){
 int secondary_rm(SOCKET primary_rm){
 	return 0;
 }
-
+/*
 int replica_manager(char *host){
 	SOCKET rm_socket;
 	struct sockaddr primary_rm; // need to set its ip to be primary ip!
@@ -334,17 +334,18 @@ int replica_manager(char *host){
 	}
 
 	return 0;
-}
+}*/
 
 int main(int argc,char *argv[]){
+	//char host[20];
 	SOCKET main_socket;
 	struct sockaddr client;
 	struct sockaddr_in server;
 	struct packet login_request, login_reply;
 	int i, j, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
 
-	strcpy(host,argv[1]);
-	replica_manager(host);
+	//strcpy(host,argv[1]);
+	//replica_manager(host);
 
 	for (i = 0; i < MAXCLIENTS; i++){
 		for(j = 0; j < MAXSESSIONS; j++){
