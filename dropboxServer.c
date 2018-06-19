@@ -65,8 +65,10 @@ char endprimario[20];
 int port;
 int isPrimario = FALSE;
 
-
+//TODO FERNANDO: criar lista/estrutura que guarda os endereços de todos os servidores
 // Subroutines
+
+//================PART 1===============================================
 char * devolvePathHomeServer(char *userID){
 	char * pathsyncdir;
 	pathsyncdir = (char*) malloc(sizeof(char)*100);
@@ -285,60 +287,61 @@ int login(struct packet login_request){
 	}
 	return -1;
 }
+//=======================================================================
+//================PART 2===============================================
 
-void *replication(){
-	//
+
+void pingPrimario(){
+
+
 }
 
-int start_election(){
-	return 0;
+void* thread_sync(void *vargp){
+		is_pinging = TRUE;
+
+
+		pingPrimario();
+
+
+		is_pinging = FALSE;
+    pthread_exit((void *)NULL);
 }
 
-int ping_leader(){
-	return 0;
-}
 
-int primary_rm(){
-	return 0;
-}
+void waitforpings(){
+	while(TRUE){
 
-int secondary_rm(SOCKET primary_rm){
-	return 0;
-}
-/*
-int replica_manager(char *host){
-	SOCKET rm_socket;
-	struct sockaddr primary_rm; // need to set its ip to be primary ip!
-	struct sockaddr_in this_rm;
-	struct packet ping, ping_reply;
-	int i, j, rm_port, this_len, primary_len = sizeof(struct sockaddr_in), online = 1;
-
-	// Socket setup
-	rm_port = 5000;
-	if((main_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		exit(1);
+		//TODO fernando escrever o que vem aqui (resposta dos pings dos secundarios)
 	}
-	memset((void *) &this_rm,0,sizeof(struct sockaddr_in));
-	this_rm.sin_family = AF_INET;
-	this_rm.sin_addr.s_addr = htonl(INADDR_ANY);
-	this_rm.sin_port = htons(rm_port);
-	this_len = sizeof(server);
-	if (bind(rm_socket,(struct sockaddr *) &this_rm, this_len)) {
-		exit(1);
-	}
+}
 
-	// Check if you're the rm_primary
-	if (strcmp(host,"127.0.0.1")){
-		printf("This is the primary!\n\n");
-		primary_rm();
-	}
-	else{
 
-		secondary_rm();
-	}
 
-	return 0;
-}*/
+void* thread_replicamanager(void *vargp){
+	pthread_t tid[2];
+	double last_time;
+	double actual_time;
+
+	while(TRUE){
+		last_time=  (double) clock() / CLOCKS_PER_SEC;
+		actual_time = (double) clock() / CLOCKS_PER_SEC;
+		if (isPrimario){
+			waitforpings();
+		}
+		else{
+			if ((!is_pinging)&&(actual_time - last_time >= time_between_ping)){ //throws a ping thread every 10 sec, if there isn't one already
+				last_time = actual_time;
+				pthread_create(&(tid[0]), NULL, thread_ping, NULL);
+			}
+		}
+	}
+	pthread_exit((void *)NULL);
+
+}
+
+
+//=======================================================================
+
 
 int main(int argc,char *argv[]){
 	//char host[20];
