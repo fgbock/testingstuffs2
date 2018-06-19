@@ -64,6 +64,8 @@ struct client client_list [MAXCLIENTS];
 char endprimario[20];
 int port;
 int isPrimario = FALSE;
+double time_between_ping = 10.f;
+double time_to_timeout = 5.f;
 
 //TODO FERNANDO: criar lista/estrutura que guarda os endereços de todos os servidores
 // Subroutines
@@ -291,18 +293,54 @@ int login(struct packet login_request){
 //================PART 2===============================================
 
 
-void pingPrimario(){
+void eleicaodeprimario(){
+	//TODO FERNANDO
+}
 
+void pingPrimario(){
+	int n;
+	struct sockaddr_in from;
+	char buffer[BUFFERSIZE];
+	int i;
+	int recebeuack = FALSE;
+	struct packet message, reply;
+	unsigned int length = sizeof(struct sockaddr_in);
+	int ret;
+	FILE *fp;
+	char path[300];
+	double last_time;
+	double actual_time;
+	int deutimeout = FALSE;
+
+	pthread_mutex_lock(&lockcomunicacao);
+
+	message.opcode = PING;
+	message.seqnum = 0;
+	strcpy(message.data,"");
+
+	last_time=  (double) clock() / CLOCKS_PER_SEC;
+	actual_time = (double) clock() / CLOCKS_PER_SEC;
+	while(!recebeuack && !deutimeout){
+		actual_time = (double) clock() / CLOCKS_PER_SEC;
+		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+
+		if (actual_time - last_time >= time_to_timeout){ //throws a ping thread every 10 sec, if there isn't one already
+			last_time = actual_time;
+			eleicaodeprimario();
+		}
+		if (reply.opcode == ACK){
+			recebeuack = TRUE;
+		}
+	}
+
+	atualizalistaservidores(reply.data);
 
 }
 
-void* thread_sync(void *vargp){
+void* thread_ping(void *vargp){
 		is_pinging = TRUE;
-
-
 		pingPrimario();
-
-
 		is_pinging = FALSE;
     pthread_exit((void *)NULL);
 }
@@ -310,20 +348,17 @@ void* thread_sync(void *vargp){
 
 void waitforpings(){
 	while(TRUE){
-
 		//TODO fernando escrever o que vem aqui (resposta dos pings dos secundarios)
 	}
 }
-
-
 
 void* thread_replicamanager(void *vargp){
 	pthread_t tid[2];
 	double last_time;
 	double actual_time;
-
+	last_time=  (double) clock() / CLOCKS_PER_SEC;
+	actual_time = (double) clock() / CLOCKS_PER_SEC;
 	while(TRUE){
-		last_time=  (double) clock() / CLOCKS_PER_SEC;
 		actual_time = (double) clock() / CLOCKS_PER_SEC;
 		if (isPrimario){
 			waitforpings();
@@ -336,14 +371,12 @@ void* thread_replicamanager(void *vargp){
 		}
 	}
 	pthread_exit((void *)NULL);
-
 }
-
-
 //=======================================================================
 
 
 int main(int argc,char *argv[]){
+	pthread_t tid;
 	//char host[20];
 	SOCKET main_socket;
 	struct sockaddr client;
@@ -362,6 +395,8 @@ int main(int argc,char *argv[]){
 		else{
 			isPrimario = FALSE;
 		}
+
+		pthread_create(&(tid), NULL, thread_replicamanager, NULL);
 
 		//strcpy(host,argv[1]);
 		//replica_manager(host);
