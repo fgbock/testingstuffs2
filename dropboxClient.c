@@ -35,11 +35,11 @@ int port;
 int socket_local;
 struct sockaddr_in serv_addr;
 struct hostent *server;
-double time_between_sync = 1.f;
+double time_between_sync = 10.f;
 
 pthread_mutex_t lockcomunicacao;
+char* list_server();
 
-//=======================================================
 void pickFileNameFromPath(char *path,char *filename){
 	char aux[100]; char aux2[100];
 	int i=0;int j=0;
@@ -55,7 +55,7 @@ void pickFileNameFromPath(char *path,char *filename){
 
 }
 
-char * devolvePathSyncDir(){
+char* devolvePathSyncDir(){
 	char * pathsyncdir;
 	pathsyncdir = (char*) malloc(sizeof(char)*100);
 	strcpy(pathsyncdir,"~/");
@@ -68,7 +68,7 @@ char * devolvePathSyncDir(){
 	return pathsyncdir;
 }
 
-char * devolvePathSyncDirBruto(){
+char* devolvePathSyncDirBruto(){
 	char * pathsyncdir;
 	pathsyncdir = (char*) malloc(sizeof(char)*100);
 	strcpy(pathsyncdir,"~/");
@@ -80,6 +80,41 @@ char * devolvePathSyncDirBruto(){
 	return pathsyncdir;
 }
 
+char* findnext(char* list_server,int contador, int * contstr){
+	char* findnext;
+	int i=0;int j=0;
+	findnext = (char*)malloc(sizeof(list_server));
+	strcpy(findnext,"");
+	if (contador ==0){
+		while(list_server[i]!='\n') //pula toda a primeira linha
+			i++;
+		i++;
+	}
+	else{
+		i = contstr[0];
+	}
+	if(list_server[i]=='\0')
+		return findnext;
+	i = i+3; // pula o ' - ' no inicio de cada linha
+	//printf("vamos trabalhar a partir de ::%s::\n",&list_server[i]);
+	while(list_server[i]!='\n' && list_server[i]!='\0'){
+		findnext[j] = list_server[i];
+		i++;j++;
+	}
+	if (list_server[i]=='\n')
+		i++;
+	findnext[j]='\0';
+
+	contstr[0] = i;
+	//printf("resultado do findnext é: ::%s::\n\n\n",findnext);
+	return findnext;
+
+}
+
+void setsynctime(int newsynctime){
+	time_between_sync = newsynctime;
+}
+//=======================================================
 int login_server(char *host,int port){
 	int n;
 	struct sockaddr_in from;
@@ -155,7 +190,7 @@ void get_file(char *filename, char * finalpath){
 	strcat(filepath,&finalpath[2]);
 	strcat(filepath,filename);
 
-	printf("Recebemos ack. Vamos receber o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
+	//printf("Recebemos ack. Vamos receber o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
 	recebeuack = receive_file_from(socket_local, filepath);
 
 	pthread_mutex_unlock(&lockcomunicacao);
@@ -246,10 +281,18 @@ void delete_file(char *filename){
 void sync_client(){
 	char * path;
 	char * sendpath;
-	int length, i = 0;
+	int length, i;
 	int fd;
 	int wd;
 	char buffer[BUF_LEN];
+	char * list_serverstr;
+	int contador;
+	char * nomearqremoto;
+	int contstr[1];
+
+	contstr[0] = 0;
+	i = 0;
+	contador= 0;
 
 	path = devolvePathSyncDir();
 	DIR* dir = opendir(path);
@@ -258,10 +301,21 @@ void sync_client(){
 		if(file->d_type==DT_REG){
 			sendpath = devolvePathSyncDirBruto();
 			strcat(sendpath, file->d_name);
-			printf("esta mandando para o sync: %s\n",sendpath);
+			//printf("esta mandando para o sync: %s\n",sendpath);
 			send_file(sendpath);
 		}
 	}
+
+	list_serverstr = list_server();
+
+	nomearqremoto = findnext(list_serverstr,contador,contstr);
+	contador++;
+	while(nomearqremoto[0]!='\0' && nomearqremoto[0]!='\n'){
+		get_file(nomearqremoto,devolvePathSyncDirBruto());
+		nomearqremoto = findnext(list_serverstr,contador,contstr);
+		contador++;
+	}
+
 }
 
 void close_session(){
@@ -293,7 +347,7 @@ void close_session(){
 	pthread_mutex_unlock(&lockcomunicacao);
 }
 //=======================================================
-void list_server(){
+char* list_server(){
 	int n;
 	struct sockaddr_in from;
 	char buffer[BUFFERSIZE];
@@ -320,7 +374,12 @@ void list_server(){
 		}
 	}
 	pthread_mutex_unlock(&lockcomunicacao);
-	printf("%s",reply.data);
+
+	char * list_server;
+	list_server = (char*)malloc(sizeof(reply.data));
+	strcpy(list_server,reply.data);
+
+	return list_server;
 }
 
 void list_client(){
@@ -364,7 +423,7 @@ void treat_command(char command[100]){
 		result = 2;
 	}
 	else if (!strncmp("list_server",command,11)){
-		list_server();
+		printf("%s",list_server());
 		result = 3;
 	}
 	else if (!strncmp("list_client",command,11)){
@@ -380,6 +439,11 @@ void treat_command(char command[100]){
 		delete_file(argument);
 		result =6;
 	}
+	else if (!strncmp("setsynctime",command,11)){
+		argument = getArgument(command);
+		setsynctime(atoi(argument));
+		result =7;
+	}
 
 
 	if (!result){;
@@ -392,7 +456,7 @@ void treat_command(char command[100]){
 	//printf("Seu comando foi: %s \n",command);
 }
 
-void *thread_sync(void *vargp){
+void* thread_sync(void *vargp){
 		int must_sync = FALSE;
 		is_syncing = TRUE;
 
@@ -407,7 +471,7 @@ void *thread_sync(void *vargp){
     pthread_exit((void *)NULL);
 }
 
-void *thread_interface(void *vargp){
+void* thread_interface(void *vargp){
 		char command[100];
 		printf("Escreva uma ação para o sistema:\n");
 
