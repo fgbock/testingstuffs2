@@ -33,10 +33,11 @@ char userID[20];
 char host[20];
 int port;
 int socket_local;
-int request_lock;
 struct sockaddr_in serv_addr;
 struct hostent *server;
-double time_between_sync = 10.f;
+double time_between_sync = 1.f;
+
+pthread_mutex_t lockcomunicacao;
 
 //=======================================================
 void pickFileNameFromPath(char *path,char *filename){
@@ -88,6 +89,8 @@ int login_server(char *host,int port){
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
 
+	pthread_mutex_lock(&lockcomunicacao);
+
 	create_home_dir(userID);
 
 	for (i=0;i<BUFFERSIZE;i++)
@@ -113,7 +116,7 @@ int login_server(char *host,int port){
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);
 
-
+	pthread_mutex_unlock(&lockcomunicacao);
 	return 1;
 }
 
@@ -128,6 +131,8 @@ void get_file(char *filename, char * finalpath){
 	char filepath[300];
 	const char *homedir;
 	char path[300];
+
+	pthread_mutex_lock(&lockcomunicacao);
 
 	if ((homedir = getenv("HOME")) == NULL) {
 			homedir = getpwuid(getuid())->pw_dir;
@@ -153,6 +158,8 @@ void get_file(char *filename, char * finalpath){
 	printf("Recebemos ack. Vamos receber o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
 	recebeuack = receive_file_from(socket_local, filepath);
 
+	pthread_mutex_unlock(&lockcomunicacao);
+
 }
 
 void send_file(char *file){
@@ -164,10 +171,10 @@ void send_file(char *file){
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
 	char filepath[300];
-
 	struct sockaddr* destiny;
 	char filename[100];
 
+	pthread_mutex_lock(&lockcomunicacao);
 	pickFileNameFromPath(file,filename);
 
 	message.opcode = UPLOAD;
@@ -185,7 +192,7 @@ void send_file(char *file){
 	removeBlank(filepath);
 	//printf("Recebemos ack. Vamos enviar o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
 	send_file_to(socket_local, filepath, *((struct sockaddr*) &serv_addr));
-
+	pthread_mutex_unlock(&lockcomunicacao);
 }
 
 void delete_file(char *filename){
@@ -199,6 +206,8 @@ void delete_file(char *filename){
 	int ret;
 	FILE *fp;
 	char path[300];
+
+	pthread_mutex_lock(&lockcomunicacao);
 
 	strcpy(path,"~/");
 	removeBlank(path);
@@ -231,7 +240,7 @@ void delete_file(char *filename){
 	} else {
 		 printf("Algo deu errado...\n");
 	}
-
+	pthread_mutex_unlock(&lockcomunicacao);
 }
 
 void sync_client(){
@@ -249,10 +258,9 @@ void sync_client(){
 		if(file->d_type==DT_REG){
 			sendpath = devolvePathSyncDirBruto();
 			strcat(sendpath, file->d_name);
-			//printf("\naqruivo que será enviado: %s\n",sendpath);
+			printf("esta mandando para o sync: %s\n",sendpath);
 			send_file(sendpath);
 		}
-		//printf("\nEstamos aqui\n");
 	}
 }
 
@@ -265,6 +273,7 @@ void close_session(){
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
 
+	pthread_mutex_lock(&lockcomunicacao);
 	create_home_dir(userID);
 
 	for (i=0;i<BUFFERSIZE;i++)
@@ -281,6 +290,7 @@ void close_session(){
 			recebeuack = TRUE;
 		}
 	}
+	pthread_mutex_unlock(&lockcomunicacao);
 }
 //=======================================================
 void list_server(){
@@ -292,6 +302,7 @@ void list_server(){
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
 
+	pthread_mutex_lock(&lockcomunicacao);
 	create_home_dir(userID);
 
 	for (i=0;i<BUFFERSIZE;i++)
@@ -308,7 +319,7 @@ void list_server(){
 			recebeuack = TRUE;
 		}
 	}
-
+	pthread_mutex_unlock(&lockcomunicacao);
 	printf("%s",reply.data);
 }
 
@@ -336,31 +347,20 @@ void treat_command(char command[100]){
 	char * argument;
 	char filename[100];
 
-
 	if (!strncmp("exit",command,4)){
 		close_session();
 		mustexit = TRUE;
 	}
 	else if (!strncmp("upload",command,6)){
 		argument = getArgument(command);
-		while (request_lock == 1){
-			//just wait :D
-		}
-		request_lock = 1;
 		send_file(argument);
 		pickFileNameFromPath(argument,filename);
-		get_file(filename,devolvePathSyncDirBruto());
-		request_lock = 0;
+		//get_file(filename,devolvePathSyncDirBruto());
 		result = 1;
 	}
 	else if (!strncmp("download",command,8)){
 		argument = getArgument(command);
-		while (request_lock == 1){
-			//just wait :D
-		}
-		request_lock = 1;
 		get_file(argument,getSecondArgument(command));
-		request_lock = 0;
 		result = 2;
 	}
 	else if (!strncmp("list_server",command,11)){
@@ -373,8 +373,7 @@ void treat_command(char command[100]){
 	}
 	else if (!strncmp("get_sync_dir",command,12)){
 		result = create_home_dir(userID);
-		if(!result)
-			result = 5;
+		result = 5;
 	}
 	else if (!strncmp("delete",command,6)){
 		argument = getArgument(command);
@@ -399,16 +398,9 @@ void *thread_sync(void *vargp){
 
 		must_sync = TRUE;
 
-		//printf("Sincronizando a pasta local...\n");
-		while (request_lock == 1){
-			//just wait :D
-		}
-		request_lock = 1;
 		if (must_sync){
 			sync_client();
 		}
-		request_lock = 0;
-		//printf("Acabou de sincronizar...\n");
 
 
 		is_syncing = FALSE;
@@ -429,9 +421,14 @@ void *thread_interface(void *vargp){
 }
 
 int main(int argc,char *argv[]){
-	request_lock = 0;
 	int loginworked = FALSE;
 	char strporta[100];
+
+	if (pthread_mutex_init(&lockcomunicacao, NULL) != 0)
+		{
+				printf("\n inicialiazação do mutex falhou\n");
+				return 1;
+		}
 
 	if (argc!=4){
 		printf("Escreva no formato: ./dropboxClient <ID_do_usuário> <endereço_do_host> <porta>\n");
