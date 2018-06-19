@@ -68,11 +68,13 @@ int port;
 int isPrimario = FALSE;
 double time_between_ping = 10.f;
 double time_to_timeout = 5.f;
+struct sockaddr_in prim_addr;
+struct hostent *primario;
+int socket_rm[2];
 
 //TODO FERNANDO: criar lista/estrutura que guarda os endereços de todos os servidores
-// Subroutines
 
-//================PART 1===============================================
+//================PART 1=================================================
 char * devolvePathHomeServer(char *userID){
 	char * pathsyncdir;
 	pathsyncdir = (char*) malloc(sizeof(char)*100);
@@ -292,9 +294,7 @@ int login(struct packet login_request){
 	return -1;
 }
 //=======================================================================
-//================PART 2===============================================
-
-
+//================PART 2=================================================
 void eleicaodeprimario(){
 	//TODO FERNANDO
 }
@@ -313,6 +313,12 @@ void pingPrimario(){
 	double last_time;
 	double actual_time;
 	int deutimeout = FALSE;
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 100000;
+	if (setsockopt(socket_local, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+	    perror("Error");
+	}
 
 	pthread_mutex_lock(&lockcomunicacao);
 
@@ -324,11 +330,12 @@ void pingPrimario(){
 	actual_time = (double) clock() / CLOCKS_PER_SEC;
 	while(!recebeuack && !deutimeout){
 		actual_time = (double) clock() / CLOCKS_PER_SEC;
-		n = sendto(socket_local, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-		n = recvfrom(socket_local, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+		n = sendto(socket_rm[0], (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &prim_addr, sizeof(struct sockaddr_in));
+		n = recvfrom(socket_rm[0], (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
 
 		if (actual_time - last_time >= time_to_timeout){ //throws a ping thread every 10 sec, if there isn't one already
 			last_time = actual_time;
+			deutimeout = TRUE;
 			eleicaodeprimario();
 		}
 		if (reply.opcode == ACK){
@@ -336,7 +343,9 @@ void pingPrimario(){
 		}
 	}
 
-	atualizalistaservidores(reply.data);
+	if(deutimeout == FALSE){
+		atualizalistaservidores(reply.data);
+	}
 
 }
 
@@ -347,7 +356,6 @@ void* thread_ping(void *vargp){
     pthread_exit((void *)NULL);
 }
 
-
 void waitforpings(){
 	int n;
 	struct sockaddr_in from;
@@ -357,7 +365,7 @@ void waitforpings(){
 	}
 }
 
-void* thread_replicamanager(void *vargp){
+void* thread_rm_pings(void *vargp){
 	pthread_t tid[2];
 	double last_time;
 	double actual_time;
@@ -377,11 +385,45 @@ void* thread_replicamanager(void *vargp){
 	}
 	pthread_exit((void *)NULL);
 }
+
+void* thread_rm_updates(void *vargp){
+	while(TRUE){
+		if (isPrimario){
+			if (!recvfrom(socket_rm[1], (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, (socklen_t *) &client_len)){
+				printf("ERROR: Package reception error.\n\n");
+			}
+			printf("Client %d, Session %d Opcode is: %hi\n\n", c_id, s_id, request.opcode);
+			switch(request.opcode){
+				case UPLOAD:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
+					strncpy(filename, request.data, MAXNAME);
+					receive_file(filename, socket_rm[1], client_list[c_id].user_id);
+					break;
+				case DOWNLOAD:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
+					strncpy(filename, request.data, MAXNAME);
+					send_file(filename, socket_rm[1], client_list[c_id].user_id, client);
+					break;
+				case DELETE:
+					reply.opcode = ACK;
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
+					strncpy(filename, request.data, MAXNAME);
+					delete_file(filename, socket_rm[1], client_list[c_id].user_id);
+					break;
+				default:
+					printf("ERROR: Invalid packet detected. Type %hi, seqnum: %hi.\n\n",request.opcode, request.seqnum);
+			}
+		}
+	}
+	pthread_exit((void *)NULL);
+}
 //=======================================================================
 
 
 int main(int argc,char *argv[]){
-	pthread_t tid;
+	pthread_t tid[2];
 	//char host[20];
 	SOCKET main_socket;
 	struct sockaddr client;
@@ -393,6 +435,8 @@ int main(int argc,char *argv[]){
 		printf("Escreva no formato: ./dropboxServer <endereço_do_server_primario>\n");
 	}
 	else{ //wrote correcly the arguments
+
+		//===================================PART 2============================
 		strcpy(endprimario,argv[1]);
 		if(strcmp(endprimario,"127.0.0.1")==0){
 			isPrimario = TRUE;
@@ -400,11 +444,25 @@ int main(int argc,char *argv[]){
 		else{
 			isPrimario = FALSE;
 		}
+		if ((socket_rm[0] = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			printf("ERROR opening socket");
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(PORTRM);
+		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+		bzero(&(serv_addr.sin_zero), 8);
 
-		pthread_create(&(tid), NULL, thread_replicamanager, NULL);
+		if ((socket_rm[1] = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+			printf("ERROR opening socket");
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(PORTRM);
+		serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+		bzero(&(serv_addr.sin_zero), 8);
 
-		//strcpy(host,argv[1]);
-		//replica_manager(host);
+
+		pthread_create(&(tid[0]), NULL, thread_rm_pings, NULL);
+		pthread_create(&(tid[1]), NULL, thread_rm_updates, NULL);
+
+		//==================================================================
 
 		for (i = 0; i < MAXCLIENTS; i++){
 			for(j = 0; j < MAXSESSIONS; j++){
