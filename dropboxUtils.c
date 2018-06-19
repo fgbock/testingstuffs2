@@ -349,6 +349,15 @@ int send_file_to(int socket, char* filepath, struct sockaddr destination){
 		return -1;
 	}
 	bytes_read = read(file, file_packet.data, PACKETSIZE - 4);
+	if (bytes_read == 0){
+		file_packet.opcode = LASTPKT;
+		file_packet.seqnum = (short) bytes_read;
+		while(reply.opcode != ACK || reply.seqnum != file_packet.seqnum){
+			sendto(socket, (char *) &file_packet, PACKETSIZE, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
+			recvfrom(socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
+			//printf("Reply was %hi for pkt #%hi, expected 1 for %hi\n\n",reply.opcode,reply.seqnum, file_packet.seqnum);
+		}
+	}
 	while(bytes_read > 0){
 		if (bytes_read == PACKETSIZE - 4){
 			file_packet.opcode = FILEPKT;
