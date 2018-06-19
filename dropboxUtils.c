@@ -147,6 +147,7 @@ char * getArgument(char* command){
 		i++;
 		j++;
 	}
+	argument[j] = '\0';
 	return argument;
 }
 char * getSecondArgument(char* command){
@@ -166,6 +167,7 @@ char * getSecondArgument(char* command){
 		i++;
 		j++;
 	}
+	argument[j] = '\0';
 	return argument;
 }
 
@@ -359,10 +361,10 @@ int send_file_to(int socket, char* filepath, struct sockaddr destination){
 		while(reply.opcode != ACK || reply.seqnum != file_packet.seqnum){
 			sendto(socket, (char *) &file_packet, PACKETSIZE, 0, (const struct sockaddr *) &destination, sizeof(struct sockaddr_in));
 			recvfrom(socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
-			printf("Reply was %hi for pkt #%hi, expected 1 for %hi\n\n",reply.opcode,reply.seqnum, file_packet.seqnum);
+			//printf("Reply was %hi for pkt #%hi, expected 1 for %hi\n\n",reply.opcode,reply.seqnum, file_packet.seqnum);
 		}
 		bytes_read = read(file, file_packet.data, PACKETSIZE - 4);
-		printf("Bytes read: %d\n\n", bytes_read);
+		//printf("Bytes read: %d\n\n", bytes_read);
 		i++;
 	}
 	return 0;

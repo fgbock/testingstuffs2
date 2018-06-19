@@ -35,7 +35,7 @@ int port;
 int socket_local;
 struct sockaddr_in serv_addr;
 struct hostent *server;
-double time_between_sync = 10000.f;
+double time_between_sync = 5000.f;
 
 //=======================================================
 void pickFileNameFromPath(char *path,char *filename){
@@ -51,6 +51,31 @@ void pickFileNameFromPath(char *path,char *filename){
 	}
 	strcpy(filename,&aux[lastdash+1]);
 
+}
+
+char * devolvePathSyncDir(){
+	char * pathsyncdir;
+	pathsyncdir = (char*) malloc(sizeof(char)*100);
+	strcpy(pathsyncdir,"~/");
+	removeBlank(pathsyncdir);
+	strcat(pathsyncdir,"sync_dir_");
+	strcat(pathsyncdir,userID);
+	strcat(pathsyncdir,"/");
+
+
+	return pathsyncdir;
+}
+
+char * devolvePathSyncDirBruto(){
+	char * pathsyncdir;
+	pathsyncdir = (char*) malloc(sizeof(char)*100);
+	strcpy(pathsyncdir,"~/");
+	strcat(pathsyncdir,"sync_dir_");
+	strcat(pathsyncdir,userID);
+	strcat(pathsyncdir,"/");
+
+
+	return pathsyncdir;
 }
 
 int login_server(char *host,int port){
@@ -138,7 +163,6 @@ void send_file(char *file){
 	struct packet message, reply;
 	unsigned int length = sizeof(struct sockaddr_in);
 	char filepath[300];
-	char pathsyncdir[100];
 
 	struct sockaddr* destiny;
 	char filename[100];
@@ -158,14 +182,8 @@ void send_file(char *file){
 	}
 	strcpy(filepath,file);
 	removeBlank(filepath);
-	printf("Recebemos ack. Vamos enviar o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
+	//printf("Recebemos ack. Vamos enviar o arquivo agora. Nome do arquivo era: %s\ne o path era: %s\n",filename,filepath);
 	send_file_to(socket_local, filepath, *((struct sockaddr*) &serv_addr));
-
-	strcpy(pathsyncdir,"~/");
-	strcat(pathsyncdir,"sync_dir_");
-	strcat(pathsyncdir,userID);
-	strcat(pathsyncdir,"/");
-	get_file(filename,pathsyncdir);
 
 }
 
@@ -216,100 +234,25 @@ void delete_file(char *filename){
 }
 
 void sync_client(){
-	char path[2256];
-	char sendpath[2256];
-	const char *homedir;
-	if ((homedir = getenv("HOME")) == NULL) {
-			homedir = getpwuid(getuid())->pw_dir;
-	}
-	strcpy(path,homedir);
-	strcat(path, "/sync_dir_");
-	strcat(path, userID);
-
-
-	//printf("path >> %s\n",path);
+	char * path;
+	char * sendpath;
 	int length, i = 0;
 	int fd;
 	int wd;
 	char buffer[BUF_LEN];
 
+	path = devolvePathSyncDir();
 	DIR* dir = opendir(path);
-	strcat(path, "/");
-
 	struct dirent * file;
-
 	while((file = readdir(dir)) != NULL){
 		if(file->d_type==DT_REG){
-			//printf("\nread: %s", file->d_name);
-
-			strcpy(sendpath, path);
+			sendpath = devolvePathSyncDirBruto();
 			strcat(sendpath, file->d_name);
-			strcat(sendpath, "\n");
-			//printf("\nSendpAth: %s\n", sendpath);
+			//printf("\naqruivo que será enviado: %s\n",sendpath);
 			send_file(sendpath);
-
 		}
+		//printf("\nEstamos aqui\n");
 	}
-
-	/*argument = getArgument(command);
-	send_file(argument);*/
-
-
-
-	/*fd = inotify_init();
-	wd = inotify_add_watch(fd,path,IN_MODIFY | IN_CREATE | IN_DELETE );
-	length = read( fd, buffer, BUF_LEN );
-	printf("\nLength: %d\n", length);
-
-
-	if ( length < 0 ) {
-		perror( "read" );
-	}
-
-
-
-	while ( i < length ) {
-		struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
-		if ( event->len ) {
-			if ( event->mask & IN_CREATE ) {
-				if ( event->mask & IN_ISDIR ) {
-					printf( "The directory %s was created.\n", event->name );
-					strcat(path,event->name);
-					send_file(path);
-				}
-				else {
-					printf( "The file %s was created.\n", event->name );
-				}
-			}
-			else if ( event->mask & IN_DELETE ) {
-				if ( event->mask & IN_ISDIR ) {
-					printf( "The directory %s was deleted.\n", event->name );
-				}
-				else {
-					printf( "The file %s was deleted.\n", event->name );
-					strcat(path,event->name);
-					//delete_file(path);
-				}
-			}
-			else if ( event->mask & IN_MODIFY ) {
-				if ( event->mask & IN_ISDIR ) {
-					printf( "The directory %s was modified.\n", event->name );
-				}
-				else {
-					printf( "The file %s was modified.\n", event->name );
-					strcat(path, "/");
-					strcat(path,event->name);
-					send_file(path);
-				}
-			}
-		}
-		i += EVENT_SIZE + event->len;
-	}
-
-	( void ) inotify_rm_watch( fd, wd );
-	( void ) close( fd );*/
-
-
 }
 
 void close_session(){
@@ -365,32 +308,24 @@ void list_server(){
 		}
 	}
 
-	printf("Listagem do server: %s\n",reply.data);
+	printf("%s",reply.data);
 }
 
 void list_client(){
+	char * path;
+	int length, i = 0;
+	int fd;
+	int wd;
 
-  DIR *dp;
-  struct dirent *ep;
-	char saida[100];
-	char path[256];
-
-	strcpy(path,"~/");
-	removeBlank(path);
-	strcat(path,"sync_dir_");
-	strcat(path,userID);
-	strcat(path,"/");
-
-  dp = opendir (path);
-  if (dp != NULL)
-    {
-      while (ep = readdir (dp))
-        strcpy(saida,ep->d_name);
-				printf("%s\n",saida);
-      (void) closedir (dp);
-    }
-  else
-    perror ("Couldn't open the directory");
+	path = devolvePathSyncDir();
+	DIR* dir = opendir(path);
+	struct dirent * file;
+	printf("Conteúdo do diretório local:\n");
+	while((file = readdir(dir)) != NULL){
+		if(file->d_type==DT_REG){
+			printf(" - %s\n",file->d_name);
+		}
+	}
 
 
 }
@@ -398,6 +333,8 @@ void list_client(){
 void treat_command(char command[100]){
 	int result= 0;
 	char * argument;
+	char filename[100];
+
 
 	if (!strncmp("exit",command,4)){
 		close_session();
@@ -406,6 +343,8 @@ void treat_command(char command[100]){
 	else if (!strncmp("upload",command,6)){
 		argument = getArgument(command);
 		send_file(argument);
+		pickFileNameFromPath(argument,filename);
+		get_file(filename,devolvePathSyncDirBruto());
 
 		result = 1;
 	}
@@ -438,7 +377,7 @@ void treat_command(char command[100]){
 	if (!result){;
 	}
 	else{
-		printf("Operação %d efetuada com sucesso!\n",result);
+		printf("Operação %d efetuada com sucesso!\n\n",result);
 	}
 
 
