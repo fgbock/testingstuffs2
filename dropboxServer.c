@@ -391,23 +391,19 @@ void* thread_rm_updates(void *vargp){
 			switch(request.opcode){
 				case UPLOAD:
 					reply.opcode = ACK;
-					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
 					strncpy(filename, request.data, MAXNAME);
 					receive_file(filename, socket_rm[1], client_list[c_id].user_id);
 					break;
 				case DOWNLOAD:
 					reply.opcode = ACK;
-					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
 					strncpy(filename, request.data, MAXNAME);
 					send_file(filename, socket_rm[1], client_list[c_id].user_id, client);
 					break;
-				case LIST:
-					reply.opcode = ACK;
-					list_files(socket_rm[1], client, client_list[c_id].user_id);
-					break;
 				case DELETE:
 					reply.opcode = ACK;
-					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
+					sendto(socket_rm[1], (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&prim_addr, sizeof(struct sockaddr_in));
 					strncpy(filename, request.data, MAXNAME);
 					delete_file(filename, socket_rm[1], client_list[c_id].user_id);
 					break;
