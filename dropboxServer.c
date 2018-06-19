@@ -62,6 +62,19 @@ struct pair {
 struct client client_list [MAXCLIENTS];
 
 // Subroutines
+char * devolvePathHomeServer(char *userID){
+	char * pathsyncdir;
+	pathsyncdir = (char*) malloc(sizeof(char)*100);
+	strcpy(pathsyncdir,"~/");
+	removeBlank(pathsyncdir);
+	strcat(pathsyncdir,"dropboxserver/");
+	strcat(pathsyncdir,userID);
+	strcat(pathsyncdir,"/");
+
+
+	return pathsyncdir;
+}
+
 int inactive_client(int index){
 	int i;
 	for (i = 0; i < MAXSESSIONS; i++){
@@ -125,27 +138,32 @@ int delete_file(char *file, int socket, char*userID){
 }
 
 void list_files(SOCKET socket, struct sockaddr client, char *userID){
+	char * path;
+	int length, i = 0;
+	int fd;
+	int wd;
 	struct dirent *ep;
 	char files_list[PACKETSIZE - 4];
 	struct packet reply;
-	char path[300];
-
 	reply.opcode = ACK;
-	strcpy(path, getenv("HOME"));
-	strcat(path, "/dropboxserver/");
-	strcat(path, userID);
-	strcat(path, "/");
-	DIR *dp = opendir (path);
-	if (dp != NULL){
-			while (ep = readdir (dp)){
-				strcat(files_list,ep->d_name);
-				strcat(files_list,"\n");
-			}
-			strncpy(reply.data, files_list, PACKETSIZE - 4);
-			sendto(socket, (char *) &reply, PACKETSIZE,0,(struct sockaddr *)&client, sizeof(client));
-			(void) closedir (dp);
+
+	path = devolvePathHomeServer(userID);
+	DIR* dir = opendir(path);
+	struct dirent * file;
+	strcpy(files_list,"Conteúdo do diretório remoto:\n");
+	while((file = readdir(dir)) != NULL){
+		if(file->d_type==DT_REG){
+			strcat(files_list," - ");
+
+			strcat(files_list,file->d_name);
+			strcat(files_list,"\n");
+		}
 	}
-	else perror ("Couldn't open the directory");
+
+	strncpy(reply.data, files_list, PACKETSIZE - 4);
+	sendto(socket, (char *) &reply, PACKETSIZE,0,(struct sockaddr *)&client, sizeof(client));
+
+
 }
 
 void *session_manager(void* args){
