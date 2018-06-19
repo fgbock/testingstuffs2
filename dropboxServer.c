@@ -29,6 +29,7 @@
 #define LOGIN 7
 #define FILEPKT 8
 #define LASTPKT 9
+#define PING 10
 
 
 // Structures
@@ -263,12 +264,69 @@ int login(struct packet login_request){
 	return -1;
 }
 
+void *replication(){
+	//
+}
+
+int start_election(){
+	return 0;
+}
+
+int ping_leader(){
+	return 0;
+}
+
+int primary_rm(){
+	return 0;
+}
+
+int secondary_rm(SOCKET primary_rm){
+	return 0;
+}
+
+int replica_manager(char *host){
+	SOCKET rm_socket;
+	struct sockaddr primary_rm; // need to set its ip to be primary ip!
+	struct sockaddr_in this_rm;
+	struct packet ping, ping_reply;
+	int i, j, rm_port, this_len, primary_len = sizeof(struct sockaddr_in), online = 1;
+
+	// Socket setup
+	rm_port = 5000;
+	if((main_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		exit(1);
+	}
+	memset((void *) &this_rm,0,sizeof(struct sockaddr_in));
+	this_rm.sin_family = AF_INET;
+	this_rm.sin_addr.s_addr = htonl(INADDR_ANY);
+	this_rm.sin_port = htons(rm_port);
+	this_len = sizeof(server);
+	if (bind(rm_socket,(struct sockaddr *) &this_rm, this_len)) {
+		exit(1);
+	}
+
+	// Check if you're the rm_primary
+	if (strcmp(host,"127.0.0.1")){
+		printf("This is the primary!\n\n");
+		primary_rm();
+	}
+	else{
+
+		secondary_rm();
+	}
+
+	return 0;
+}
+
 int main(int argc,char *argv[]){
 	SOCKET main_socket;
 	struct sockaddr client;
 	struct sockaddr_in server;
 	struct packet login_request, login_reply;
 	int i, j, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
+
+	strcpy(host,argv[1]);
+	replica_manager(host);
 
 	for (i = 0; i < MAXCLIENTS; i++){
 		for(j = 0; j < MAXSESSIONS; j++){
