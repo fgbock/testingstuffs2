@@ -322,16 +322,22 @@ void elect_primary(){
 	while(i < MAXSERVERS && serverlist.active[i] == 0){
 		i++;
 	}
-	primary_id = i;
-	if (primary_id == server_id){
+	if (i < MAXSERVERS){
+		primary_id = i;
+	}
+	if (primary_id == server_id || i >= MAXSERVERS){
 		is_primary = TRUE;
+		primary_id = server_id;
 	}
 }
 
 int update_server_list(struct packet reply){
 	char *data;
-	strncpy(data,reply.data, sizeof(struct serverlist));
-	serverlist = *((struct serverlist *) &data);
+	int i;
+	memcpy((void *) &serverlist,reply.data,sizeof(data));
+	for(i = 0; i < MAXSERVERS; i++){
+		printf("Server #%d is %d\n\n",i, serverlist.active[i]);
+	}
 }
 
 int insert_in_server_list(struct sockaddr_in new_server){
@@ -378,6 +384,7 @@ void *replica_manager(){
 		server_id = insert_in_server_list(this_rm);
 	}
 	else{
+		printf("Host is %s\n\n",host);
 		primary_host = gethostbyname(host);
 		primary_rm.sin_family = AF_INET;
 		primary_rm.sin_port = htons(5000);
@@ -388,6 +395,7 @@ void *replica_manager(){
 	}
 
 	while(online){
+		printf("Primary is %d\n\n", primary_id);
 		// Check if you're the rm_primary
 		if (is_primary){
 			recvfrom(rm_socket, (char *) &ping, PACKETSIZE, 0, (struct sockaddr *) &from, (socklen_t *) &from_len);
