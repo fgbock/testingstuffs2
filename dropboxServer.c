@@ -389,6 +389,7 @@ void *replica_manager(){
 		primary_rm.sin_family = AF_INET;
 		primary_rm.sin_port = htons(5000);
 		primary_rm.sin_addr = *((struct in_addr *)primary_host->h_addr);
+		bzero(&(primary_rm.sin_zero), 8);
 	}
 
 	while(online){
@@ -407,14 +408,14 @@ void *replica_manager(){
 				}
 				ping_reply.opcode = ACK;
 				strncpy(ping_reply.data, (char *) &serverlist, sizeof(struct serverlist));
-				sendto(rm_socket, (char *) &ping_reply, PACKETSIZE, 0, (struct sockaddr *)&primary_rm, primary_len);
+				sendto(rm_socket, (char *) &ping_reply, PACKETSIZE, 0, (struct sockaddr *)&from, primary_len);
 			}
 		}
 		else{
 			// Send ping
 			sendto(rm_socket, (char *) &ping, PACKETSIZE, 0, (struct sockaddr *)&primary_rm, primary_len);
-			tv.tv_sec = 0;
-			tv.tv_usec = 500000;
+			tv.tv_sec = 2;
+			tv.tv_usec = 0;
 			if (setsockopt(rm_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
 				perror("Error");
 			}
