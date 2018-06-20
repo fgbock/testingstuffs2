@@ -82,6 +82,7 @@ int server_id;
 struct sockaddr_in serv_addr;
 struct hostent *jbserver;
 pthread_mutex_t lockcomunicacao;
+int id_primario;
 
 //================PART 1=================================================
 char * devolvePathHomeServer(char *userID){
@@ -305,15 +306,17 @@ int login(struct packet login_request){
 //=======================================================================
 //================PART 2=================================================
 void eleicaodeprimario(){
-	 int i;
-	for (i = server_id; i < MAXSERVERS; i++){
-		// send election request
-
+	int i = 0;
+	while(i < MAXSERVERS && serverlist.active[i] == 0){
+		i++;
 	}
+	id_primario = i;
 }
 
-void atualizalistaservidores(){
-
+void atualizalistaservidores(struct packet reply){
+	char *data;
+	strncpy(data,reply.data, sizeof(struct serverlist));
+	serverlist = *((struct serverlist *) &data);
 }
 
 void pingPrimario(){
@@ -346,6 +349,7 @@ void pingPrimario(){
 	last_time=  (double) clock() / CLOCKS_PER_SEC;
 	actual_time = (double) clock() / CLOCKS_PER_SEC;
 	while(!recebeuack && !deutimeout){
+		prim_addr = serverlist.addr[id_primario];
 		actual_time = (double) clock() / CLOCKS_PER_SEC;
 		n = sendto(socket_rm, (char *)&message, PACKETSIZE, 0, (const struct sockaddr *) &prim_addr, sizeof(struct sockaddr_in));
 		n = recvfrom(socket_rm, (char *)&reply, PACKETSIZE, 0, (struct sockaddr *) &from, &length);
@@ -353,6 +357,7 @@ void pingPrimario(){
 		if (actual_time - last_time >= time_to_timeout){ //throws a ping thread every 10 sec, if there isn't one already
 			last_time = actual_time;
 			deutimeout = TRUE;
+			serverlist.active[id_primario] = 0;
 			eleicaodeprimario();
 		}
 		if (reply.opcode == ACK){
@@ -365,7 +370,7 @@ void pingPrimario(){
 	}
 
 	if(deutimeout == FALSE){
-		atualizalistaservidores(reply.data);
+		atualizalistaservidores(reply);
 	}
 }
 
