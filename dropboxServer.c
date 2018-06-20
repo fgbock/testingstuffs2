@@ -390,14 +390,16 @@ void *replica_manager(){
 		primary_rm.sin_port = htons(5000);
 		primary_rm.sin_addr = *((struct in_addr *)primary_host->h_addr);
 	}
-	if (setsockopt(rm_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-		perror("Error");
-	}
 
 	while(online){
 		printf("Primary is %d\n\n", primary_id);
 		// Check if you're the rm_primary
 		if (is_primary){
+			tv.tv_sec = 25;
+			tv.tv_usec = 0;
+			if (setsockopt(rm_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+				perror("Error");
+			}
 			recvfrom(rm_socket, (char *) &ping, PACKETSIZE, 0, (struct sockaddr *) &from, (socklen_t *) &from_len);
 			if (ping.opcode == PING){
 				if(ping.seqnum == NONE){
@@ -411,6 +413,11 @@ void *replica_manager(){
 		else{
 			// Send ping
 			sendto(rm_socket, (char *) &ping, PACKETSIZE, 0, (struct sockaddr *)&primary_rm, primary_len);
+			tv.tv_sec = 0;
+			tv.tv_usec = 500000;
+			if (setsockopt(rm_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+				perror("Error");
+			}
 			if (0 > recvfrom(rm_socket, (char *) &ping_reply, PACKETSIZE, 0, (struct sockaddr *) &from, (socklen_t *) &from_len)){
 				//Timeout!
 				serverlist.active[primary_id] = 0;
