@@ -14,6 +14,11 @@
 #include <pwd.h>
 #include <unistd.h>
 
+
+#include <time.h>
+#include <arpa/inet.h>
+#include <sys/inotify.h>
+
 #define SOCKET int
 #define PACKETSIZE 1250
 #define MAIN_PORT 6000
@@ -447,12 +452,10 @@ int main(int argc,char *argv[]){
 	struct sockaddr_in server;
 	struct packet login_request, login_reply;
 	int i, j, session_port, server_len, client_len = sizeof(struct sockaddr_in), online = 1;
-
 	if (argc!=2){
 		printf("Escreva no formato: ./dropboxServer <endereço_do_server_primario>\n");
 	}
 	else{ //wrote correcly the arguments
-
 		//===================================PART 2============================
 		strcpy(endprimario,argv[1]);
 		if(strcmp(endprimario,"127.0.0.1")==0){
@@ -462,22 +465,21 @@ int main(int argc,char *argv[]){
 			isPrimario = FALSE;
 		}
 
+		jbserver = gethostbyname(endprimario);
 		if ((socket_rm = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 			printf("ERROR opening socket");
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_port = htons(PORTRM);
-		serv_addr.sin_addr = *((struct in_addr *)jbserver->h_addr);
+		prim_addr.sin_family = AF_INET;
+		prim_addr.sin_port = htons(PORTRM);
+		prim_addr.sin_addr = *((struct in_addr *)jbserver->h_addr);
 		bzero(&(serv_addr.sin_zero), 8);
 
-		printf("GOT HERE 0 \n\n");
+
 		serverlist.active[0] = 1;
 		serverlist.addr[0] = serv_addr;
 		for(i = 1; i < MAXSERVERS; i++){
 			serverlist.active[i] = 0;
 		}
-		printf("GOT HERE 2\n\n");
 		pthread_create(&tid, NULL, thread_rm_pings, NULL);
-		printf("GOT HERE 3\n\n");
 		//==================================================================
 
 		for (i = 0; i < MAXCLIENTS; i++){
