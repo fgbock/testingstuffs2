@@ -231,5 +231,4 @@ int main(int argc,char *argv[]){
 	// call session
 	pthread_create(&tid2, NULL, session, NULL);
 	return 0;
->>>>>>> 2ab3a08bd6c3d5bd7c633689c43cd58ebf29261a
 }
