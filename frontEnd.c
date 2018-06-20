@@ -122,9 +122,9 @@ void *ping(){
 		// Send ping
 		request.opcode = PING;
 		request.seqnum = FRONTEND; 
-		sendto(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&rm, (struct socklen_t *) &rm_len);
+		sendto(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&rm, rm_len);
 		// Wait for an ack & slist
-		if (0 > recvfrom(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, (struct socklen_t *) &from_len)){
+		if (0 > recvfrom(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &from_len)){
 			// Timeout
 			serverlist.active[primary_id] = 0;
 			int switchservers();
@@ -167,18 +167,18 @@ void *session(){
 	}
 	while(active){
 		// Wait for a packet from client
-		recvfrom(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, sizeof(struct sockaddr_in));
+		recvfrom(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, &client_len);
 		// Reroute to server
-		sendto(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&server, sizeof(struct sockaddr_in));
+		sendto(session_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&server, server_len);
 		// Wait for a reply packet from server
 		tv.tv_sec = 0;
 		tv.tv_usec = 100000;
 		if (setsockopt(session_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
 			perror("Error");
 		}
-		recvfrom(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, sizeof(struct sockaddr_in));
+		recvfrom(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &from_len);
 		// Reroute to client
-		sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, sizeof(struct sockaddr_in));
+		sendto(session_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 	}
 }
 
@@ -218,14 +218,14 @@ int main(int argc,char *argv[]){
 	// Setup done
 
 	// Login request
-	recvfrom(fe_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, sizeof(struct sockaddr_in));
+	recvfrom(fe_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *) &client, &client_len);
 	// Login reroute
-	sendto(fe_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&server, sizeof(struct sockaddr_in));
+	sendto(fe_socket, (char *) &request, PACKETSIZE, 0, (struct sockaddr *)&server, server_len);
 	// Login reply
-	recvfrom(fe_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, sizeof(struct sockaddr_in));
+	recvfrom(fe_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *) &from, &from_len);
 	session_port = reply.seqnum;
 	// Login reply reroute to client
-	sendto(fe_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, sizeof(struct sockaddr_in));
+	sendto(fe_socket, (char *) &reply, PACKETSIZE, 0, (struct sockaddr *)&client, client_len);
 	// call ping
  	pthread_create(&tid1, NULL, ping, NULL);
 	// call session
